@@ -1,21 +1,26 @@
 const St = imports.gi.St;
+const Mainloop = imports.mainloop;
 
 const Desklet = imports.ui.desklet;
 const Settings = imports.ui.settings;
+const Sampler = imports.sampler;
 
 class BandwidthMonitorDesklet extends Desklet.Desklet {
     constructor(metadata, deskletId) {
         super(metadata, deskletId);
 
         this.metadata = metadata;
+        this._sampleTimeoutId = 0;
+        this._sampler = new Sampler.InterfaceSampler();
+
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
-        this.settings.bind("sample-seconds", "sampleSeconds", this._syncShell.bind(this));
-        this.settings.bind("preferred-interface", "preferredInterface", this._syncShell.bind(this));
+        this.settings.bind("sample-seconds", "sampleSeconds", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("preferred-interface", "preferredInterface", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("show-header", "showHeader", this._syncHeader.bind(this));
 
         this._buildShell();
         this._syncHeader();
-        this._syncShell();
+        this._renderUnavailable(null);
     }
 
     _buildShell() {
@@ -137,29 +142,116 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._titleLabel.visible = this.showHeader;
     }
 
-    _syncShell() {
-        const interfaceLabel = this.preferredInterface ? this.preferredInterface : _("auto");
-        const sampleLabel = this.sampleSeconds || 1;
+    _onSamplingSettingsChanged() {
+        this._sampler.reset();
+        this._restartSampling();
+        this._tickSample();
+    }
 
-        this._statusLabel.set_text(_(`Static shell configured for ${sampleLabel}s sampling on ${interfaceLabel}.`));
-        this._primaryRow.titleLabel.set_text(_(`Primary Interface (${interfaceLabel})`));
-        this._primaryRow.stateLabel.set_text(_(`sample ${sampleLabel}s`));
-        this._primaryRow.footer.set_text(_("Static shell only. Live RX and TX values arrive in Phase 2."));
+    _restartSampling() {
+        if (this._sampleTimeoutId > 0) {
+            Mainloop.source_remove(this._sampleTimeoutId);
+            this._sampleTimeoutId = 0;
+        }
 
-        this._aggregateRow.stateLabel.set_text(_("planned aggregate"));
-        this._aggregateRow.footer.set_text(_("Group totals and multi-interface display arrive in later phases."));
+        const intervalSeconds = this._getSampleInterval();
+        this._sampleTimeoutId = Mainloop.timeout_add_seconds(intervalSeconds, () => this._tickSample());
+    }
 
-        this._hintLabel.set_text(
-            _("This desklet now provides a stable row-based shell and settings wiring without live traffic sampling.")
+    _getSampleInterval() {
+        return Math.max(1, this.sampleSeconds || 1);
+    }
+
+    _tickSample() {
+        const measurement = this._sampler.sample(this.preferredInterface || "");
+
+        if (!measurement.available) {
+            this._renderUnavailable(measurement.reason || "No interface available.");
+            return true;
+        }
+
+        if (measurement.counterReset) {
+            this._renderWaiting(measurement, "Counter change detected. Waiting for the next sample.");
+            return true;
+        }
+
+        if (!measurement.hasRate) {
+            this._renderWaiting(measurement, "Collecting the second sample needed to calculate live rates.");
+            return true;
+        }
+
+        this._renderMeasurement(measurement);
+        return true;
+    }
+
+    _renderUnavailable(reason) {
+        const requestedInterface = this.preferredInterface ? this.preferredInterface : "auto";
+        const sampleLabel = this._getSampleInterval();
+
+        this._statusLabel.set_text(`Waiting for a usable interface at ${sampleLabel}s sampling.`);
+        this._primaryRow.titleLabel.set_text(`Primary Interface (${requestedInterface})`);
+        this._primaryRow.stateLabel.set_text("unavailable");
+        this._primaryRow.rxValue.valueWidget.set_text("--");
+        this._primaryRow.txValue.valueWidget.set_text("--");
+        this._primaryRow.footer.set_text(reason || "No interface is currently available.");
+
+        this._aggregateRow.container.visible = false;
+        this._hintLabel.set_text("Single-interface live monitoring is active in this phase. Multi-interface totals arrive later.");
+    }
+
+    _renderWaiting(measurement, footerText) {
+        this._statusLabel.set_text(`Monitoring ${measurement.interfaceName} every ${this._getSampleInterval()}s.`);
+        this._primaryRow.titleLabel.set_text(`Primary Interface (${measurement.interfaceName})`);
+        this._primaryRow.stateLabel.set_text(measurement.selectionMode === "preferred" ? "preferred" : "auto");
+        this._primaryRow.rxValue.valueWidget.set_text("--");
+        this._primaryRow.txValue.valueWidget.set_text("--");
+        this._primaryRow.footer.set_text(measurement.selectionNote || footerText);
+
+        this._aggregateRow.container.visible = false;
+        this._hintLabel.set_text("Live RX and TX text values are enabled for one interface in this phase.");
+    }
+
+    _renderMeasurement(measurement) {
+        this._statusLabel.set_text(`Monitoring ${measurement.interfaceName} every ${this._getSampleInterval()}s.`);
+        this._primaryRow.titleLabel.set_text(`Primary Interface (${measurement.interfaceName})`);
+        this._primaryRow.stateLabel.set_text(measurement.selectionMode === "preferred" ? "preferred" : "auto");
+        this._primaryRow.rxValue.valueWidget.set_text(this._formatRate(measurement.rxRate));
+        this._primaryRow.txValue.valueWidget.set_text(this._formatRate(measurement.txRate));
+        this._primaryRow.footer.set_text(
+            measurement.selectionNote || `Sampling counters from /sys/class/net/${measurement.interfaceName}/statistics/.`
         );
+
+        this._aggregateRow.container.visible = false;
+        this._hintLabel.set_text("Live RX and TX text values are enabled for one interface in this phase.");
+    }
+
+    _formatRate(bytesPerSecond) {
+        const units = ["B/s", "KB/s", "MB/s", "GB/s"];
+        let value = Math.max(0, bytesPerSecond);
+        let unitIndex = 0;
+
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+        }
+
+        const decimals = value >= 100 || unitIndex === 0 ? 0 : 1;
+        return `${value.toFixed(decimals)} ${units[unitIndex]}`;
     }
 
     on_desklet_added_to_desktop() {
         this._syncHeader();
-        this._syncShell();
+        this._restartSampling();
+        this._tickSample();
     }
 
     on_desklet_removed() {
+        if (this._sampleTimeoutId > 0) {
+            Mainloop.source_remove(this._sampleTimeoutId);
+            this._sampleTimeoutId = 0;
+        }
+
+        this._sampler.reset();
         this.settings = null;
     }
 }

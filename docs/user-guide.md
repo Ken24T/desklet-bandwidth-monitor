@@ -13,6 +13,7 @@ What exists today:
 - Phase 0 scaffold files for a Cinnamon desklet
 - baseline metadata and settings schema
 - a static desklet shell with row-based placeholder layout
+- live single-interface RX and TX text monitoring
 
 What does not exist yet:
 
@@ -58,15 +59,16 @@ The current implementation establishes:
 - desklet metadata
 - settings binding structure
 - a stable row-based content shell
-- placeholder primary and aggregate interface rows
+- live RX and TX text output for a single interface
 - a validation script for the repository scaffold
 
 Current visible behaviour:
 
 - the desklet can display a header
-- the desklet shows static placeholder rows for the planned interface layout
-- the preferred interface setting is reflected in the placeholder text
-- no live RX or TX values are shown yet
+- the desklet shows live RX and TX text values for one interface
+- the preferred interface setting can target a specific interface name
+- if the preferred interface is unavailable, the desklet falls back to automatic selection
+- aggregate and multi-interface views are not shown yet
 
 ## Planned User Workflow
 
@@ -81,7 +83,8 @@ Once the desklet is implemented, the expected user flow will be:
 
 Current limitations are expected for this early phase:
 
-- no live traffic data is shown yet
+- only one interface is monitored at a time
+- interface discovery and richer selection rules are still basic
 - no production-ready packaging instructions yet
 - settings are foundational rather than feature-complete
 
