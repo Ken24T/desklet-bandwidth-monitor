@@ -52,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The current branch focus is Phase 4: expand from one interface to repeatable interface rows, session totals, and an aggregate row.
+The current branch focus is Phase 5: expand the settings and display controls so the desklet is more usable day to day.
