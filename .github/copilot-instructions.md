@@ -30,6 +30,7 @@ This repository is a native Cinnamon/GJS desklet project for monitoring network 
 - If the user asks to ship, hand off, or branch, follow `.github/TCTBP Agent.md` and `.github/TCTBP.json`.
 - Do not claim lint, test, or packaging verification happened if those commands are not yet defined.
 - For bootstrap-stage work, prefer establishing real commands and files over placeholder automation.
+- For implementation work, prefer one branch per phase, merge completed phase branches into local `main`, use short-lived sub-branches only for substantial internal slices, and ask before pushing the merged phase result to the remote.
 
 ## Near-Term Project Direction
 

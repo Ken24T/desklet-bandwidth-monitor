@@ -10,8 +10,13 @@ These slices are planning and delivery units, not automatic release units. Under
 - Prefer a working desklet with fewer features over partially wired systems.
 - Keep the internal design modular so later slices can extend it without a rewrite.
 - Treat performance, redraw efficiency, and correctness as first-class constraints from the start.
+- Use one main implementation branch per phase by default.
+- If a phase contains substantial internal work, use a short-lived sub-branch and merge it back into the phase branch before merging the completed phase to local `main`.
+- After each successful phase merge to local `main`, decide explicitly whether to also push that state to the remote.
 
 ## Phase 0: Repository Bootstrap
+
+Suggested branch: `phase-0-bootstrap`
 
 Purpose: establish the minimum repo structure needed to start real implementation.
 
@@ -29,6 +34,8 @@ Done criteria:
 - The TCTBP workflow can point to concrete files instead of placeholders.
 
 ## Phase 1: Static Desklet Shell
+
+Suggested branch: `phase-1-static-shell`
 
 Purpose: prove the desklet loads in Cinnamon and renders a stable UI shell.
 
@@ -50,6 +57,8 @@ Done criteria:
 - UI remains stable across reloads.
 
 ## Phase 2: Single-Interface Live Text Display
+
+Suggested branch: `phase-2-single-interface-live-text`
 
 Purpose: deliver the first genuinely useful feature with minimal complexity.
 
@@ -78,6 +87,8 @@ Done criteria:
 
 ## Phase 3: Interface Discovery and Selection
 
+Suggested branch: `phase-3-interface-discovery-selection`
+
 Purpose: move from a hard-coded proof of concept to a usable network monitor.
 
 Scope:
@@ -99,6 +110,8 @@ Done criteria:
 
 ## Phase 4: Multi-Interface Rows and Session Totals
 
+Suggested branch: `phase-4-multi-interface-totals`
+
 Purpose: establish the core row-based model described in the specification.
 
 Scope:
@@ -119,6 +132,8 @@ Done criteria:
 - Aggregate totals match the included interfaces.
 
 ## Phase 5: Settings Expansion
+
+Suggested branch: `phase-5-settings-expansion`
 
 Purpose: expose the functionality needed for the desklet to feel like a real desktop widget.
 
@@ -143,6 +158,8 @@ Done criteria:
 
 ## Phase 6: Sparkline Charts and Smoothing
 
+Suggested branch: `phase-6-sparklines-smoothing`
+
 Purpose: add the richer visual layer without undermining performance.
 
 Scope:
@@ -164,6 +181,8 @@ Done criteria:
 - Charts remain legible across different desklet sizes.
 
 ## Phase 7: Reliability and Edge Cases
+
+Suggested branch: `phase-7-reliability-edge-cases`
 
 Purpose: harden the desklet against the conditions that make monitors feel untrustworthy.
 
@@ -187,6 +206,8 @@ Done criteria:
 
 ## Phase 8: Packaging and Release Readiness
 
+Suggested branch: `phase-8-packaging-release-readiness`
+
 Purpose: make the project ship-ready and easier to maintain.
 
 Scope:
@@ -206,18 +227,19 @@ Done criteria:
 - Release workflow reflects actual repository commands.
 - Core documentation matches the implementation.
 
-## Immediate Next Slice
+## Immediate Next Branches
 
-The recommended next slice is Phase 0 followed immediately by Phase 1 and Phase 2 in a single focused milestone:
+The recommended near-term branch sequence is:
 
-1. Create the desklet scaffold.
-2. Get the desklet loading.
-3. Show live RX and TX for one interface.
+1. `phase-0-bootstrap`
+2. `phase-1-static-shell`
+3. `phase-2-single-interface-live-text`
 
-That sequence gives the project a real executable baseline quickly, while keeping later multi-interface and chart work additive rather than foundational.
+Recommended working model:
 
-Recommended release interpretation:
+- complete the current phase branch
+- merge it into local `main`
+- create the next phase branch from updated local `main`
+- ask whether to also push the newly merged `main` state to the remote
 
-- implement Phase 0, Phase 1, and Phase 2 together
-- verify the result as one coherent milestone
-- then perform a single SHIP for that milestone rather than shipping each phase separately
+This keeps the branch history aligned with the implementation phases while still allowing substantial internal slices to use short-lived sub-branches when needed.

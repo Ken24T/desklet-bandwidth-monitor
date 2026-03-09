@@ -10,6 +10,8 @@ This repository is currently a **local-first, solo-developer Cinnamon desklet pr
 
 For this repo, a **SHIP** is expected at a **completed milestone boundary**, typically after one meaningful slice or a small group of related slices has been completed and verified. It is **not** expected after every micro-step, task, or partial refactor.
 
+For implementation work in this repo, the default branching model is **phase branch -> local main -> optional remote push**. Each completed phase branch should normally be merged into local `main`, and then the agent should ask whether to also push that result to the configured remote.
+
 ---
 
 ## Project Profile (How this agent adapts per repo)
@@ -88,10 +90,29 @@ Behaviour (local-first, remote-safe):
 
 3. **Create and switch to the new branch** from updated local `main`.
 
-4. **Remote safety**
+  - For implementation work, use a descriptive phase-oriented branch name where practical, for example `phase-1-static-shell` or `phase-4-multi-interface-totals`.
+
+4. **Sub-branch rule**
+
+  - If a phase contains a substantial or risky internal slice, create a short-lived sub-branch from the phase branch.
+  - Merge the sub-branch back into the phase branch first.
+  - Only merge to local `main` when the parent phase branch is complete.
+
+5. **Remote safety**
 
   - Any push requires explicit approval.
   - If no remote exists yet, branching remains entirely local.
+
+### Phase Completion Rule
+
+For this repo, when a phase branch is successfully completed:
+
+1. Verify the branch against the configured checks and milestone expectations.
+2. Merge the completed branch into local `main`.
+3. Create and switch to the next appropriately named phase branch.
+4. Ask the user whether to also push `main` and any relevant tags to the remote.
+
+Do not assume that every local phase completion must immediately be pushed to the remote.
 
 Versioning interaction:
 
@@ -157,6 +178,7 @@ Interpretation for this repo:
 - do not use SHIP for every minor intermediate step
 - it is valid to complete multiple closely related slices and then perform a single SHIP
 - docs-only or infrastructure-only milestones may skip bump/tag per the normal rules
+- when SHIP follows completion of a phase branch, merge to local `main` first and then ask before pushing the resulting `main` state to the remote
 
 ### 1. Preflight
 
@@ -227,6 +249,8 @@ During SHIP, the agent may proceed through **Bump → Commit → Tag** without p
 - Never push to protected branches
 - If no remote is configured, skip push and state that clearly in the summary
 
+For this repo's implementation phases, the normal target for an approved push after local completion is `main`, after the completed phase branch has already been merged locally.
+
 ---
 
 ## Permissions Expectations (Authoritative)
@@ -269,6 +293,7 @@ On any failure:
 - Preferred data source: `/sys/class/net/<interface>/statistics/`
 - Default version source once present: `metadata.json`
 - Remote may not exist yet; all workflows must remain valid in a purely local repository
+- Preferred implementation branch model: one branch per phase, with optional short-lived sub-branches for substantial phase-internal work
 
 ---
 
@@ -288,7 +313,13 @@ On any failure:
   "repository": {
     "mode": "local-first",
     "pullRequestsRequired": false,
-    "pushRequiresRemote": true
+    "pushRequiresRemote": true,
+    "phaseBranching": {
+      "default": "one-branch-per-phase",
+      "allowSubBranchesForSignificantWork": true,
+      "mergeCompletedPhaseToLocalMain": true,
+      "askBeforeRemotePushAfterPhaseMerge": true
+    }
   },
   "projectProfile": {
     "stack": "cinnamon-gjs-desklet",

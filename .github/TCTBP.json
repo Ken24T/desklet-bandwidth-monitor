@@ -5,9 +5,17 @@
     "remoteName": "origin",
     "pullRequestsRequired": false,
     "pushRequiresRemote": true,
+    "branchStrategy": {
+      "default": "one-branch-per-phase",
+      "allowSubBranchesForSignificantWork": true,
+      "mergeCompletedPhaseToLocalMain": true,
+      "createNextPhaseBranchAfterLocalMerge": true,
+      "askBeforeRemotePushAfterPhaseMerge": true
+    },
     "notes": [
       "This repo may operate without a remote during early development.",
-      "Push steps are skipped when the configured remote does not exist."
+      "Push steps are skipped when the configured remote does not exist.",
+      "Completed implementation phases should normally merge to local main before any optional remote push."
     ]
   },
   "activation": {
@@ -38,7 +46,8 @@
     "order": ["preflight", "test", "problems", "bump", "commit", "tag", "push"],
     "requireApproval": ["push"],
     "skipPushWhenRemoteMissing": true,
-    "singleDeveloperDirectMerge": true
+    "singleDeveloperDirectMerge": true,
+    "implementationPhaseFlow": ["complete-phase-branch", "merge-to-local-main", "create-next-phase-branch", "ask-before-remote-push"]
   },
   "versioning": {
     "scheme": "semver",
