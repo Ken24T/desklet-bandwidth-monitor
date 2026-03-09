@@ -1,0 +1,9 @@
+{
+  "uuid": "bandwidth-monitor@Ken24T",
+  "name": "Bandwidth Monitor",
+  "description": "A Cinnamon desklet for monitoring network bandwidth activity.",
+  "icon": "utilities-system-monitor",
+  "prevent-decorations": false,
+  "max-instances": "10",
+  "version": "0.0.0"
+}

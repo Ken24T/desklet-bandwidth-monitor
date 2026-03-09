@@ -1,0 +1,23 @@
+{
+  "sample-seconds": {
+    "type": "spinbutton",
+    "default": 1,
+    "min": 1,
+    "max": 10,
+    "units": "s",
+    "description": "Sampling interval",
+    "tooltip": "How often the desklet should sample network counters."
+  },
+  "preferred-interface": {
+    "type": "entry",
+    "default": "",
+    "description": "Preferred interface",
+    "tooltip": "Leave blank for auto selection when interface discovery is implemented."
+  },
+  "show-header": {
+    "type": "switch",
+    "default": true,
+    "description": "Show desklet header",
+    "tooltip": "Display the desklet title above the content."
+  }
+}
