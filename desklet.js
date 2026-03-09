@@ -6,6 +6,7 @@ const Desklet = imports.ui.desklet;
 const Formatting = imports.formatting;
 const Settings = imports.ui.settings;
 const Monitor = imports.monitor;
+const Sparkline = imports.sparkline;
 
 class BandwidthMonitorDesklet extends Desklet.Desklet {
     constructor(metadata, deskletId) {
@@ -31,6 +32,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("row-spacing", "rowSpacing", this._syncDisplaySettings.bind(this));
         this.settings.bind("content-alignment", "contentAlignment", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-interface-inventory", "showInterfaceInventory", this._syncDisplaySettings.bind(this));
+        this.settings.bind("show-sparklines", "showSparklines", this._syncDisplaySettings.bind(this));
+        this.settings.bind("history-length", "historyLength", this._syncDisplaySettings.bind(this));
+        this.settings.bind("smoothing-mode", "smoothingMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-header", "showHeader", this._syncHeader.bind(this));
 
         this._buildShell();
@@ -116,9 +120,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             style_class: "bandwidth-monitor__row-footer",
             text: _("Waiting for live sampling in the next milestone.")
         });
+        const sparkline = new Sparkline.SparklineView();
 
         container.add_child(header);
         container.add_child(metrics);
+        container.add_child(sparkline.actor);
         container.add_child(footer);
 
         return {
@@ -126,6 +132,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             titleLabel,
             stateLabel,
             metrics,
+            sparkline,
             footer,
             rxValue,
             txValue,
@@ -211,7 +218,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             selectionMode: this.selectionMode || "auto",
             preferredInterface: this.preferredInterface || "",
             includeTunnelInterfaces: this.includeTunnelInterfaces,
-            visibleInterfaces: this.visibleInterfaces || ""
+            visibleInterfaces: this.visibleInterfaces || "",
+            historyLength: this.historyLength || 60,
+            smoothingMode: this.smoothingMode || "moving-average"
         });
 
         this._lastAvailableInterfaces = snapshot.availableInterfaces || [];
@@ -259,6 +268,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(row.totalRxBytes));
             widget.totalTxValue.valueWidget.set_text(this._formatBytes(row.totalTxBytes));
             widget.footer.set_text(row.footer);
+            widget.sparkline.update(row.rxHistory, row.txHistory, {
+                visible: this.showSparklines,
+                height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
+            });
             widget.container.visible = true;
         });
 
@@ -274,6 +287,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(aggregate.totalRxBytes));
             widget.totalTxValue.valueWidget.set_text(this._formatBytes(aggregate.totalTxBytes));
             widget.footer.set_text(aggregate.footer);
+            widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
+                visible: this.showSparklines,
+                height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
+            });
             widget.container.visible = true;
         }
 
@@ -310,6 +327,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.titleLabel.x_align = alignment;
         widget.stateLabel.x_align = alignment;
         widget.footer.x_align = alignment;
+        widget.sparkline.actor.style = `height: ${Math.max(32, Math.round(34 * fontScale))}px;`;
+        widget.sparkline.actor.visible = this.showSparklines;
 
         [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {
             metric.labelWidget.visible = this.showLabels;
