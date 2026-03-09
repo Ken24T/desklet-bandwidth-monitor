@@ -27,6 +27,14 @@ The desklet is expected to start with a small native Cinnamon/GJS structure buil
 - `settings-schema.json`
 - `stylesheet.css`
 
+## Current Scaffold
+
+The repository now includes the Phase 0 desklet scaffold with those root-level files and a minimal validation command:
+
+```bash
+./scripts/validate-desklet.sh
+```
+
 ## Workflow Notes
 
 This repo uses a local-first, solo-developer TCTBP workflow.

@@ -1,0 +1,18 @@
+.bandwidth-monitor {
+    padding: 12px;
+    spacing: 8px;
+}
+
+.bandwidth-monitor__title {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.bandwidth-monitor__status {
+    font-size: 0.95em;
+}
+
+.bandwidth-monitor__hint {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.72);
+}
