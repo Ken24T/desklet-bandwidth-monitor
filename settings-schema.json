@@ -29,6 +29,18 @@
     "description": "Include VPN and tunnel interfaces in auto selection",
     "tooltip": "Allow auto-detection to select interfaces such as tun0 or wg0."
   },
+  "visible-interfaces": {
+    "type": "entry",
+    "default": "",
+    "description": "Visible interfaces",
+    "tooltip": "Comma-separated interface names. Leave blank to show all automatically discovered interfaces."
+  },
+  "show-group-all": {
+    "type": "switch",
+    "default": true,
+    "description": "Show Group All Interfaces row",
+    "tooltip": "Display the aggregate row for the currently visible interfaces."
+  },
   "show-header": {
     "type": "switch",
     "default": true,

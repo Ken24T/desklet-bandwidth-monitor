@@ -15,10 +15,10 @@ What exists today:
 - a static desklet shell with row-based placeholder layout
 - live single-interface RX and TX text monitoring
 - basic interface discovery and auto-selection rules
+- repeatable interface rows with session totals and aggregate totals
 
 What does not exist yet:
 
-- multi-interface display
 - sparklines
 - full settings experience
 
@@ -58,7 +58,7 @@ The current implementation establishes:
 - desklet metadata
 - settings binding structure
 - a stable row-based content shell
-- live RX and TX text output for a single interface
+- live RX and TX text output for visible interfaces
 - a validation script for the repository scaffold
 
 Current visible behaviour:
@@ -69,7 +69,9 @@ Current visible behaviour:
 - interface selection mode can be automatic or preferred-interface based
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
 - tunnel interfaces can be excluded from or included in automatic selection
-- aggregate and multi-interface views are not shown yet
+- multiple interface rows can be shown together
+- per-session RX and TX totals are shown for each visible row
+- an aggregate Group All Interfaces row can be shown for the visible set
 
 ## Planned User Workflow
 
@@ -84,8 +86,8 @@ Once the desklet is implemented, the expected user flow will be:
 
 Current limitations are expected for this early phase:
 
-- only one interface is monitored at a time
-- interface visibility and ordering are not user-configurable yet
+- visibility uses a simple comma-separated interface list rather than a richer settings UI
+- interface ordering is still basic
 - no production-ready packaging instructions yet
 - settings are foundational rather than feature-complete
 
