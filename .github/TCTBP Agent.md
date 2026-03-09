@@ -8,6 +8,8 @@ This agent is **not** for exploratory coding or refactoring. It is activated onl
 
 This repository is currently a **local-first, solo-developer Cinnamon desklet project**. The workflow must work cleanly before a remote exists and must not assume Pull Requests.
 
+For this repo, a **SHIP** is expected at a **completed milestone boundary**, typically after one meaningful slice or a small group of related slices has been completed and verified. It is **not** expected after every micro-step, task, or partial refactor.
+
 ---
 
 ## Project Profile (How this agent adapts per repo)
@@ -148,6 +150,13 @@ Approval rules:
 ## SHIP / TCTBP Workflow
 
 **SHIP = Preflight → Test → Problems → Bump → Commit → Tag → Push/Skip-Push**
+
+Interpretation for this repo:
+
+- use SHIP when a slice or milestone is complete, coherent, and worth versioning
+- do not use SHIP for every minor intermediate step
+- it is valid to complete multiple closely related slices and then perform a single SHIP
+- docs-only or infrastructure-only milestones may skip bump/tag per the normal rules
 
 ### 1. Preflight
 
