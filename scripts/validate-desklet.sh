@@ -12,6 +12,7 @@ required_files=(
   "monitor.js"
   "sampler.js"
   "sparkline.js"
+  "scripts/package-desklet.sh"
   "settings-schema.json"
   "stylesheet.css"
 )
@@ -52,5 +53,7 @@ grep -q "on_desklet_removed" "$repo_root/desklet.js" || {
 }
 
 gjs --version >/dev/null
+
+"$repo_root/scripts/package-desklet.sh" --dry-run >/dev/null
 
 echo "Desklet scaffold validation passed."

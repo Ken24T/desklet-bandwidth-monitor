@@ -19,10 +19,10 @@ What exists today:
 - expanded display settings for labels, totals, alignment, scaling, and unit mode
 - sparkline charts with configurable history length and smoothing mode
 - more defensive handling for disappearing interfaces, counter resets, and suspicious spikes
+- package creation for release artifacts
 
 What does not exist yet:
 
-- sparklines
 - full settings experience
 
 ## Intended Purpose
@@ -40,9 +40,13 @@ Planned user-facing goals include:
 
 ## Installation
 
-Installation and packaging steps are not final yet.
+The project now includes a package script for release artifacts:
 
-This section will be expanded once the desklet reaches a usable release state and the packaging workflow is defined.
+```bash
+./scripts/package-desklet.sh
+```
+
+This produces a zip archive in `dist/` containing the desklet files under the correct UUID folder.
 
 For local development on Cinnamon, the repository includes a helper script:
 
@@ -51,6 +55,8 @@ For local development on Cinnamon, the repository includes a helper script:
 ```
 
 This creates or updates a symlink in `~/.local/share/cinnamon/desklets/` so the current repository can be loaded as a local desklet during development.
+
+For packaged installation, extract the packaged UUID directory into `~/.local/share/cinnamon/desklets/` and then add or reload the desklet in Cinnamon.
 
 ## Current Behaviour
 
@@ -100,7 +106,6 @@ Current limitations are expected for this early phase:
 - interface ordering is still basic
 - per-interface nicknames, colours, and richer layout controls are not implemented yet
 - chart styling is still simple rather than fully themeable
-- no production-ready packaging instructions yet
 
 ## Document Maintenance Rule
 
