@@ -23,6 +23,7 @@ This repository is a native Cinnamon/GJS desklet project for monitoring network 
 - Build the project in thin vertical slices rather than large speculative frameworks.
 - Keep edits minimal and consistent with the current repo shape.
 - Update documentation when introducing structure, workflow, or artifact changes.
+- Keep `docs/user-guide.md` current for user-visible behaviour, settings, limitations, and installation guidance as the project evolves.
 - When versioned desklet artifacts exist, keep version changes aligned with the TCTBP workflow.
 
 ## Workflow Expectations

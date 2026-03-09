@@ -17,6 +17,7 @@ This repository is in bootstrap stage. The current committed assets are planning
 - TCTBP workflow policy: `.github/TCTBP Agent.md`
 - TCTBP workflow configuration: `.github/TCTBP.json`
 - Implementation plan: `docs/implementation-plan.md`
+- User guide: `docs/user-guide.md`
 
 ## Intended Initial Project Shape
 
@@ -35,6 +36,12 @@ The repository now includes the Phase 0 desklet scaffold with those root-level f
 ./scripts/validate-desklet.sh
 ```
 
+For local Cinnamon testing during development:
+
+```bash
+./scripts/install-local-desklet.sh
+```
+
 ## Workflow Notes
 
 This repo uses a local-first, solo-developer TCTBP workflow.
@@ -45,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The next practical milestone is to create the initial Cinnamon desklet scaffold and implement a minimal single-interface live bandwidth view.
+The next practical milestone after the static shell is Phase 2: add live single-interface bandwidth sampling and text display.
