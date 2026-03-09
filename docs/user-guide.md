@@ -14,11 +14,10 @@ What exists today:
 - baseline metadata and settings schema
 - a static desklet shell with row-based placeholder layout
 - live single-interface RX and TX text monitoring
+- basic interface discovery and auto-selection rules
 
 What does not exist yet:
 
-- live bandwidth sampling
-- interface discovery
 - multi-interface display
 - sparklines
 - full settings experience
@@ -66,8 +65,10 @@ Current visible behaviour:
 
 - the desklet can display a header
 - the desklet shows live RX and TX text values for one interface
-- the preferred interface setting can target a specific interface name
+- the desklet discovers available interfaces and shows them in the desklet
+- interface selection mode can be automatic or preferred-interface based
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
+- tunnel interfaces can be excluded from or included in automatic selection
 - aggregate and multi-interface views are not shown yet
 
 ## Planned User Workflow
@@ -84,7 +85,7 @@ Once the desklet is implemented, the expected user flow will be:
 Current limitations are expected for this early phase:
 
 - only one interface is monitored at a time
-- interface discovery and richer selection rules are still basic
+- interface visibility and ordering are not user-configurable yet
 - no production-ready packaging instructions yet
 - settings are foundational rather than feature-complete
 

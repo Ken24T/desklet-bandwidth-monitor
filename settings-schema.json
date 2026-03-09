@@ -8,11 +8,26 @@
     "description": "Sampling interval",
     "tooltip": "How often the desklet should sample network counters."
   },
+  "selection-mode": {
+    "type": "combobox",
+    "default": "auto",
+    "description": "Interface selection mode",
+    "options": {
+      "Auto-detect": "auto",
+      "Preferred interface": "preferred"
+    }
+  },
   "preferred-interface": {
     "type": "entry",
     "default": "",
     "description": "Preferred interface",
-    "tooltip": "Leave blank for auto selection when interface discovery is implemented."
+    "tooltip": "Interface name such as enp3s0 or wlo1. Used when selection mode is Preferred interface."
+  },
+  "include-tunnel-interfaces": {
+    "type": "switch",
+    "default": false,
+    "description": "Include VPN and tunnel interfaces in auto selection",
+    "tooltip": "Allow auto-detection to select interfaces such as tun0 or wg0."
   },
   "show-header": {
     "type": "switch",

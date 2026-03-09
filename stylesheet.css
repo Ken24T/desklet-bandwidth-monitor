@@ -66,3 +66,8 @@
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.72);
 }
+
+.bandwidth-monitor__inventory {
+    font-size: 0.84em;
+    color: rgba(255, 255, 255, 0.64);
+}

@@ -6,6 +6,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 
 required_files=(
   "desklet.js"
+  "interfaces.js"
   "metadata.json"
   "sampler.js"
   "settings-schema.json"
