@@ -17,6 +17,7 @@ What exists today:
 - basic interface discovery and auto-selection rules
 - repeatable interface rows with session totals and aggregate totals
 - expanded display settings for labels, totals, alignment, scaling, and unit mode
+- sparkline charts with configurable history length and smoothing mode
 
 What does not exist yet:
 
@@ -76,6 +77,8 @@ Current visible behaviour:
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
 - the discovered interface inventory can be shown or hidden
+- sparkline charts can be shown or hidden
+- history length and smoothing behaviour can be adjusted
 
 ## Planned User Workflow
 
@@ -93,6 +96,7 @@ Current limitations are expected for this early phase:
 - visibility uses a simple comma-separated interface list rather than a richer settings UI
 - interface ordering is still basic
 - per-interface nicknames, colours, and richer layout controls are not implemented yet
+- chart styling is still simple rather than fully themeable
 - no production-ready packaging instructions yet
 
 ## Document Maintenance Rule

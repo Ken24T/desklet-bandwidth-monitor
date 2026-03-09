@@ -52,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The current branch focus is Phase 5: expand the settings and display controls so the desklet is more usable day to day.
+The current branch focus is Phase 6: add bounded sparkline history, smoothing, and chart display without compromising responsiveness.

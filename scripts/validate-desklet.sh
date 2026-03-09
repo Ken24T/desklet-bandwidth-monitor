@@ -11,6 +11,7 @@ required_files=(
   "metadata.json"
   "monitor.js"
   "sampler.js"
+  "sparkline.js"
   "settings-schema.json"
   "stylesheet.css"
 )
