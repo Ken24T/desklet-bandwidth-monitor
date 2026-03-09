@@ -52,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The current branch focus is Phase 2: add live single-interface bandwidth sampling and text display, then move on to interface discovery and smarter selection.
+The current branch focus is Phase 3: improve interface discovery, classification, and selection behaviour before expanding to multi-interface totals.

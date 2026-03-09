@@ -1,10 +1,11 @@
 const ByteArray = imports.byteArray;
-const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+const Interfaces = imports.interfaces;
 
 var InterfaceSampler = class {
     constructor(rootPath = "/sys/class/net") {
         this._rootPath = rootPath;
+        this._catalog = new Interfaces.InterfaceCatalog(rootPath);
         this._lastSample = null;
     }
 
@@ -12,25 +13,31 @@ var InterfaceSampler = class {
         this._lastSample = null;
     }
 
-    sample(preferredInterface = "") {
-        const requestedInterface = preferredInterface.trim();
-        const interfaceName = this._resolveInterface(requestedInterface);
+    sample(options = {}) {
+        const requestedInterface = (options.preferredInterface || "").trim();
+        const selectionMode = options.selectionMode || "auto";
+        const includeTunnelInterfaces = Boolean(options.includeTunnelInterfaces);
+        const selection = this._catalog.resolveSelection(selectionMode, requestedInterface, includeTunnelInterfaces);
+        const selectedInterface = selection.selected;
 
-        if (!interfaceName) {
+        if (!selectedInterface) {
             this._lastSample = null;
             return {
                 available: false,
                 requestedInterface,
+                availableInterfaces: selection.interfaces,
                 reason: "No usable network interface was found."
             };
         }
 
+        const interfaceName = selectedInterface.name;
         const counters = this._readCounters(interfaceName);
         if (!counters) {
             this._lastSample = null;
             return {
                 available: false,
                 requestedInterface,
+                availableInterfaces: selection.interfaces,
                 reason: `Unable to read counters for ${interfaceName}.`
             };
         }
@@ -43,11 +50,12 @@ var InterfaceSampler = class {
         const result = {
             available: true,
             interfaceName,
+            interfaceLabel: selectedInterface.label,
+            interfaceInfo: selectedInterface,
             requestedInterface,
-            selectionMode: requestedInterface && requestedInterface === interfaceName ? "preferred" : "auto",
-            selectionNote: requestedInterface && requestedInterface !== interfaceName
-                ? `Preferred interface ${requestedInterface} was unavailable. Using ${interfaceName}.`
-                : null,
+            availableInterfaces: selection.interfaces,
+            selectionMode: selection.selectionMode,
+            selectionNote: selection.selectionNote,
             rxBytes: counters.rxBytes,
             txBytes: counters.txBytes,
             rxRate: 0,
@@ -83,74 +91,6 @@ var InterfaceSampler = class {
         return result;
     }
 
-    _resolveInterface(requestedInterface) {
-        if (requestedInterface && this._hasCounters(requestedInterface)) {
-            return requestedInterface;
-        }
-
-        return this._chooseAutoInterface();
-    }
-
-    _chooseAutoInterface() {
-        const interfaces = this._listInterfaces();
-
-        const preferredPhysical = interfaces.filter(name => name !== "lo" && this._readType(name) === 1 && this._readOperState(name) === "up");
-        if (preferredPhysical.length > 0) {
-            return preferredPhysical[0];
-        }
-
-        const activeInterfaces = interfaces.filter(name => name !== "lo" && this._readOperState(name) === "up");
-        if (activeInterfaces.length > 0) {
-            return activeInterfaces[0];
-        }
-
-        const standardInterfaces = interfaces.filter(name => name !== "lo" && this._readType(name) === 1);
-        if (standardInterfaces.length > 0) {
-            return standardInterfaces[0];
-        }
-
-        const nonLoopback = interfaces.filter(name => name !== "lo");
-        if (nonLoopback.length > 0) {
-            return nonLoopback[0];
-        }
-
-        return interfaces.includes("lo") ? "lo" : null;
-    }
-
-    _listInterfaces() {
-        const root = Gio.File.new_for_path(this._rootPath);
-        let enumerator = null;
-        const names = [];
-
-        try {
-            enumerator = root.enumerate_children(
-                "standard::name,standard::type",
-                Gio.FileQueryInfoFlags.NONE,
-                null
-            );
-
-            let info = null;
-            while ((info = enumerator.next_file(null)) !== null) {
-                if (info.get_file_type() === Gio.FileType.DIRECTORY) {
-                    names.push(info.get_name());
-                }
-            }
-        } catch (error) {
-            global.logError(error, "Bandwidth Monitor: unable to enumerate network interfaces.");
-        } finally {
-            if (enumerator) {
-                enumerator.close(null);
-            }
-        }
-
-        names.sort();
-        return names;
-    }
-
-    _hasCounters(interfaceName) {
-        return this._readCounters(interfaceName) !== null;
-    }
-
     _readCounters(interfaceName) {
         const basePath = `${this._rootPath}/${interfaceName}/statistics`;
         const rxBytes = this._readInteger(`${basePath}/rx_bytes`);
@@ -162,16 +102,6 @@ var InterfaceSampler = class {
 
         return { rxBytes, txBytes };
     }
-
-    _readOperState(interfaceName) {
-        return this._readText(`${this._rootPath}/${interfaceName}/operstate`) || "unknown";
-    }
-
-    _readType(interfaceName) {
-        const value = this._readInteger(`${this._rootPath}/${interfaceName}/type`);
-        return value === null ? -1 : value;
-    }
-
     _readInteger(path) {
         const text = this._readText(path);
         if (text === null) {
