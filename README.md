@@ -52,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The next practical milestone after the static shell is Phase 2: add live single-interface bandwidth sampling and text display.
+The current branch focus is Phase 2: add live single-interface bandwidth sampling and text display, then move on to interface discovery and smarter selection.
