@@ -18,6 +18,7 @@ What exists today:
 - repeatable interface rows with session totals and aggregate totals
 - expanded display settings for labels, totals, alignment, scaling, and unit mode
 - sparkline charts with configurable history length and smoothing mode
+- more defensive handling for disappearing interfaces, counter resets, and suspicious spikes
 
 What does not exist yet:
 
@@ -79,6 +80,8 @@ Current visible behaviour:
 - the discovered interface inventory can be shown or hidden
 - sparkline charts can be shown or hidden
 - history length and smoothing behaviour can be adjusted
+- the desklet waits for a stable sample after counter resets or interface return
+- obviously implausible spike samples are suppressed when recent history makes them suspect
 
 ## Planned User Workflow
 

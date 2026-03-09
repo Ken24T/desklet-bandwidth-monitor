@@ -26,6 +26,7 @@ var SessionMonitor = class {
             config.preferredInterface || "",
             Boolean(config.includeTunnelInterfaces)
         );
+        this._clearMissingPrevious(selection.interfaces.map(iface => iface.name));
         const visibleInterfaces = this._resolveVisibleInterfaces(
             selection.interfaces,
             selection.selected,
@@ -115,6 +116,7 @@ var SessionMonitor = class {
         let txRate = 0;
         let hasRate = false;
         let footer = `Sampling counters from /sys/class/net/${interfaceInfo.name}/statistics/.`;
+        let spikeSuppressed = false;
 
         if (previous && nowUs > previous.timeUs) {
             const elapsedSeconds = (nowUs - previous.timeUs) / 1000000;
@@ -124,9 +126,21 @@ var SessionMonitor = class {
             if (rxDelta >= 0 && txDelta >= 0) {
                 rxRate = rxDelta / elapsedSeconds;
                 txRate = txDelta / elapsedSeconds;
-                totals.rx += rxDelta;
-                totals.tx += txDelta;
+                const stabilised = this._stabiliseRates(interfaceInfo.name, rxRate, txRate);
+                rxRate = stabilised.rxRate;
+                txRate = stabilised.txRate;
+                spikeSuppressed = stabilised.suppressed;
+
+                if (!spikeSuppressed) {
+                    totals.rx += rxDelta;
+                    totals.tx += txDelta;
+                }
+
                 hasRate = true;
+
+                if (spikeSuppressed) {
+                    footer = "Spike suppressed to avoid displaying an implausible burst sample.";
+                }
             } else {
                 footer = "Counter reset detected. Waiting for the next stable sample.";
             }
@@ -224,6 +238,44 @@ var SessionMonitor = class {
             rx: this._smoothSeries(this._historyByInterface[key].rx, smoothingMode),
             tx: this._smoothSeries(this._historyByInterface[key].tx, smoothingMode)
         };
+    }
+
+    _clearMissingPrevious(availableNames) {
+        const available = new Set(availableNames);
+
+        Object.keys(this._previousByInterface).forEach(name => {
+            if (!available.has(name)) {
+                delete this._previousByInterface[name];
+            }
+        });
+    }
+
+    _stabiliseRates(key, rxRate, txRate) {
+        const history = this._historyByInterface[key] || { rx: [], tx: [] };
+        const baselineRx = this._averagePositiveTail(history.rx, 5);
+        const baselineTx = this._averagePositiveTail(history.tx, 5);
+        let suppressed = false;
+
+        if (baselineRx > 1024 && rxRate > Math.max(1024 * 1024, baselineRx * 20)) {
+            rxRate = baselineRx;
+            suppressed = true;
+        }
+
+        if (baselineTx > 1024 && txRate > Math.max(1024 * 1024, baselineTx * 20)) {
+            txRate = baselineTx;
+            suppressed = true;
+        }
+
+        return { rxRate, txRate, suppressed };
+    }
+
+    _averagePositiveTail(series, count) {
+        const values = series.filter(value => value > 0).slice(-count);
+        if (values.length === 0) {
+            return 0;
+        }
+
+        return values.reduce((result, value) => result + value, 0) / values.length;
     }
 
     _appendAggregateHistory(rxValue, txValue, historyLength, smoothingMode) {
