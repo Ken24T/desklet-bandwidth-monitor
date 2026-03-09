@@ -41,6 +41,63 @@
     "description": "Show Group All Interfaces row",
     "tooltip": "Display the aggregate row for the currently visible interfaces."
   },
+  "rate-unit-mode": {
+    "type": "combobox",
+    "default": "auto-bytes",
+    "description": "Rate unit mode",
+    "options": {
+      "Automatic bytes per second": "auto-bytes",
+      "Automatic bits per second": "auto-bits"
+    }
+  },
+  "show-labels": {
+    "type": "switch",
+    "default": true,
+    "description": "Show metric labels",
+    "tooltip": "Display labels such as RX, TX, Total RX, and Total TX."
+  },
+  "show-totals": {
+    "type": "switch",
+    "default": true,
+    "description": "Show session totals",
+    "tooltip": "Display cumulative RX and TX totals for each visible row."
+  },
+  "font-scale": {
+    "type": "spinbutton",
+    "default": 1.0,
+    "min": 0.8,
+    "max": 2.0,
+    "step": 0.1,
+    "units": "x",
+    "description": "Font scale",
+    "tooltip": "Scale the desklet text without changing the desklet size."
+  },
+  "row-spacing": {
+    "type": "spinbutton",
+    "default": 10,
+    "min": 4,
+    "max": 24,
+    "step": 1,
+    "units": "px",
+    "description": "Row spacing",
+    "tooltip": "Adjust the space between interface rows."
+  },
+  "content-alignment": {
+    "type": "combobox",
+    "default": "left",
+    "description": "Content alignment",
+    "options": {
+      "Left": "left",
+      "Centre": "center",
+      "Right": "right"
+    }
+  },
+  "show-interface-inventory": {
+    "type": "switch",
+    "default": true,
+    "description": "Show discovered interface list",
+    "tooltip": "Display the discovered interfaces and their current state below the desklet rows."
+  },
   "show-header": {
     "type": "switch",
     "default": true,

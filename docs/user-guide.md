@@ -16,6 +16,7 @@ What exists today:
 - live single-interface RX and TX text monitoring
 - basic interface discovery and auto-selection rules
 - repeatable interface rows with session totals and aggregate totals
+- expanded display settings for labels, totals, alignment, scaling, and unit mode
 
 What does not exist yet:
 
@@ -72,6 +73,9 @@ Current visible behaviour:
 - multiple interface rows can be shown together
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the visible set
+- rate units can be shown as bytes per second or bits per second
+- labels, totals, alignment, spacing, and font scale can be adjusted from settings
+- the discovered interface inventory can be shown or hidden
 
 ## Planned User Workflow
 
@@ -88,8 +92,8 @@ Current limitations are expected for this early phase:
 
 - visibility uses a simple comma-separated interface list rather than a richer settings UI
 - interface ordering is still basic
+- per-interface nicknames, colours, and richer layout controls are not implemented yet
 - no production-ready packaging instructions yet
-- settings are foundational rather than feature-complete
 
 ## Document Maintenance Rule
 

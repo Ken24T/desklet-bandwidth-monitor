@@ -1,7 +1,9 @@
+const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 
 const Desklet = imports.ui.desklet;
+const Formatting = imports.formatting;
 const Settings = imports.ui.settings;
 const Monitor = imports.monitor;
 
@@ -22,10 +24,18 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("include-tunnel-interfaces", "includeTunnelInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
+        this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
+        this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
+        this.settings.bind("font-scale", "fontScale", this._syncDisplaySettings.bind(this));
+        this.settings.bind("row-spacing", "rowSpacing", this._syncDisplaySettings.bind(this));
+        this.settings.bind("content-alignment", "contentAlignment", this._syncDisplaySettings.bind(this));
+        this.settings.bind("show-interface-inventory", "showInterfaceInventory", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-header", "showHeader", this._syncHeader.bind(this));
 
         this._buildShell();
         this._syncHeader();
+        this._syncDisplaySettings();
         this._renderUnavailable("Waiting for an initial monitor sample.");
     }
 
@@ -115,6 +125,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             container,
             titleLabel,
             stateLabel,
+            metrics,
             footer,
             rxValue,
             txValue,
@@ -152,6 +163,27 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         this.setHeader(this.showHeader ? title : "");
         this._titleLabel.visible = this.showHeader;
+    }
+
+    _syncDisplaySettings() {
+        const fontScale = this.fontScale || 1;
+        const spacing = this.rowSpacing || 10;
+        const alignment = this._resolveAlignment(this.contentAlignment || "left");
+
+        this._contentBox.style = `spacing: ${spacing}px;`;
+        this._panelBox.style = `spacing: ${spacing}px;`;
+        this._titleLabel.style = `font-size: ${1.15 * fontScale}em;`;
+        this._statusLabel.style = `font-size: ${0.95 * fontScale}em; color: rgba(255, 255, 255, 0.82);`;
+        this._hintLabel.style = `font-size: ${0.9 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+        this._inventoryLabel.style = `font-size: ${0.84 * fontScale}em; color: rgba(255, 255, 255, 0.64);`;
+        this._titleLabel.x_align = alignment;
+        this._statusLabel.x_align = alignment;
+        this._hintLabel.x_align = alignment;
+        this._inventoryLabel.x_align = alignment;
+        this._inventoryLabel.visible = this.showInterfaceInventory;
+
+        Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
+        this._tickSample();
     }
 
     _onSamplingSettingsChanged() {
@@ -256,9 +288,37 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         if (!this._rowsByKey[key]) {
             this._rowsByKey[key] = this._createRowWidget(title);
             this._panelBox.add_child(this._rowsByKey[key].container);
+            this._applyRowDisplaySettings(
+                this._rowsByKey[key],
+                this.fontScale || 1,
+                this.rowSpacing || 10,
+                this._resolveAlignment(this.contentAlignment || "left")
+            );
         }
 
         return this._rowsByKey[key];
+    }
+
+    _applyRowDisplaySettings(widget, fontScale, spacing, alignment) {
+        const rowPadding = Math.max(8, spacing);
+
+        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: rgba(255, 255, 255, 0.06);`;
+        widget.metrics.style = `spacing: ${Math.max(8, spacing)}px;`;
+        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
+        widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.68);`;
+        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+        widget.titleLabel.x_align = alignment;
+        widget.stateLabel.x_align = alignment;
+        widget.footer.x_align = alignment;
+
+        [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {
+            metric.labelWidget.visible = this.showLabels;
+            metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+            metric.valueWidget.style = `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
+        });
+
+        widget.totalRxValue.container.visible = this.showTotals;
+        widget.totalTxValue.container.visible = this.showTotals;
     }
 
     _hideAllRows() {
@@ -287,31 +347,23 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _formatRate(bytesPerSecond) {
-        const units = ["B/s", "KB/s", "MB/s", "GB/s"];
-        let value = Math.max(0, bytesPerSecond);
-        let unitIndex = 0;
-
-        while (value >= 1024 && unitIndex < units.length - 1) {
-            value /= 1024;
-            unitIndex += 1;
-        }
-
-        const decimals = value >= 100 || unitIndex === 0 ? 0 : 1;
-        return `${value.toFixed(decimals)} ${units[unitIndex]}`;
+        return Formatting.formatRate(bytesPerSecond, this.rateUnitMode || "auto-bytes");
     }
 
     _formatBytes(bytes) {
-        const units = ["B", "KB", "MB", "GB", "TB"];
-        let value = Math.max(0, bytes);
-        let unitIndex = 0;
+        return Formatting.formatDataSize(bytes);
+    }
 
-        while (value >= 1024 && unitIndex < units.length - 1) {
-            value /= 1024;
-            unitIndex += 1;
+    _resolveAlignment(value) {
+        if (value === "center") {
+            return Clutter.ActorAlign.CENTER;
         }
 
-        const decimals = value >= 100 || unitIndex === 0 ? 0 : 1;
-        return `${value.toFixed(decimals)} ${units[unitIndex]}`;
+        if (value === "right") {
+            return Clutter.ActorAlign.END;
+        }
+
+        return Clutter.ActorAlign.START;
     }
 
     on_desklet_added_to_desktop() {
