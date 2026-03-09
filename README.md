@@ -4,11 +4,14 @@ A native Cinnamon desklet for displaying live network bandwidth activity with a 
 
 ## Current Status
 
-This repository is in bootstrap stage. The current committed assets are planning and workflow documents that define:
+This repository now contains a working Cinnamon desklet implementation with:
 
-- the product specification
-- the implementation direction
-- the release and handoff workflow
+- live bandwidth text monitoring
+- interface discovery and selection
+- multi-interface rows and aggregate totals
+- configurable display settings
+- sparkline history charts
+- release packaging support
 
 ## Key Documents
 
@@ -42,6 +45,12 @@ For local Cinnamon testing during development:
 ./scripts/install-local-desklet.sh
 ```
 
+For release packaging:
+
+```bash
+./scripts/package-desklet.sh
+```
+
 ## Workflow Notes
 
 This repo uses a local-first, solo-developer TCTBP workflow.
@@ -52,4 +61,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The current branch focus is Phase 7: harden the desklet against counter resets, interface disappearance, and false spike behaviour.
+The current branch focus is release readiness: keep the package flow, validation, and user-facing documentation aligned with the implementation state.

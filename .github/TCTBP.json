@@ -33,7 +33,7 @@
     "format": "python3 -m json.tool metadata.json >/dev/null && python3 -m json.tool settings-schema.json >/dev/null",
     "test": "./scripts/validate-desklet.sh",
     "build": "./scripts/validate-desklet.sh",
-    "package": "optional-manual-package-step",
+    "package": "./scripts/package-desklet.sh",
     "versionFile": "metadata.json",
     "versionField": "version",
     "bootstrapRules": {
