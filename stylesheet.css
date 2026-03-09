@@ -1,15 +1,65 @@
 .bandwidth-monitor {
-    padding: 12px;
-    spacing: 8px;
+    padding: 14px;
+    spacing: 10px;
 }
 
 .bandwidth-monitor__title {
-    font-size: 1.1em;
+    font-size: 1.15em;
     font-weight: bold;
 }
 
 .bandwidth-monitor__status {
     font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.bandwidth-monitor__panel {
+    spacing: 10px;
+}
+
+.bandwidth-monitor__row {
+    padding: 10px;
+    border-radius: 10px;
+    spacing: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.bandwidth-monitor__row-header {
+    spacing: 12px;
+}
+
+.bandwidth-monitor__row-title {
+    font-weight: bold;
+}
+
+.bandwidth-monitor__row-state {
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.bandwidth-monitor__metrics {
+    spacing: 10px;
+}
+
+.bandwidth-monitor__metric {
+    padding: 8px 10px;
+    border-radius: 8px;
+    spacing: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.bandwidth-monitor__metric-label {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.85em;
+}
+
+.bandwidth-monitor__metric-value {
+    font-size: 1.05em;
+    font-weight: bold;
+}
+
+.bandwidth-monitor__row-footer {
+    font-size: 0.88em;
+    color: rgba(255, 255, 255, 0.72);
 }
 
 .bandwidth-monitor__hint {
