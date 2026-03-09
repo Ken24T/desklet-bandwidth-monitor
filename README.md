@@ -52,4 +52,4 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 
 ## Next Step
 
-The current branch focus is Phase 3: improve interface discovery, classification, and selection behaviour before expanding to multi-interface totals.
+The current branch focus is Phase 4: expand from one interface to repeatable interface rows, session totals, and an aggregate row.

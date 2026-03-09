@@ -8,6 +8,7 @@ required_files=(
   "desklet.js"
   "interfaces.js"
   "metadata.json"
+  "monitor.js"
   "sampler.js"
   "settings-schema.json"
   "stylesheet.css"

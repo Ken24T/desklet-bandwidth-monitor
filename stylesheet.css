@@ -38,6 +38,7 @@
 
 .bandwidth-monitor__metrics {
     spacing: 10px;
+    flex-wrap: wrap;
 }
 
 .bandwidth-monitor__metric {
