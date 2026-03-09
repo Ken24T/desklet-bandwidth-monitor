@@ -9,11 +9,15 @@ var SessionMonitor = class {
         this._catalog = new Interfaces.InterfaceCatalog(rootPath);
         this._previousByInterface = {};
         this._totalsByInterface = {};
+        this._historyByInterface = {};
+        this._aggregateHistory = { rx: [], tx: [] };
     }
 
     reset() {
         this._previousByInterface = {};
         this._totalsByInterface = {};
+        this._historyByInterface = {};
+        this._aggregateHistory = { rx: [], tx: [] };
     }
 
     sample(config = {}) {
@@ -29,8 +33,11 @@ var SessionMonitor = class {
             Boolean(config.includeTunnelInterfaces)
         );
         const nowUs = GLib.get_monotonic_time();
-        const rows = visibleInterfaces.map(interfaceInfo => this._buildRow(interfaceInfo, nowUs, selection));
+        const historyLength = Math.max(10, config.historyLength || 60);
+        const smoothingMode = config.smoothingMode || "moving-average";
+        const rows = visibleInterfaces.map(interfaceInfo => this._buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode));
         const availableRows = rows.filter(row => row.available);
+        const aggregate = this._buildAggregateRow(availableRows, historyLength, smoothingMode);
 
         return {
             availableInterfaces: selection.interfaces,
@@ -38,7 +45,7 @@ var SessionMonitor = class {
             selectionMode: selection.selectionMode,
             selectionNote: selection.selectionNote,
             rows,
-            aggregate: this._buildAggregateRow(availableRows),
+            aggregate,
             hasVisibleRows: rows.length > 0
         };
     }
@@ -80,10 +87,11 @@ var SessionMonitor = class {
         return defaults;
     }
 
-    _buildRow(interfaceInfo, nowUs, selection) {
+    _buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode) {
         const counters = this._readCounters(interfaceInfo.name);
         if (!counters) {
             delete this._previousByInterface[interfaceInfo.name];
+            const history = this._appendHistory(interfaceInfo.name, 0, 0, historyLength, smoothingMode);
             return {
                 available: false,
                 interfaceInfo,
@@ -95,7 +103,9 @@ var SessionMonitor = class {
                 totalTxBytes: this._totalsByInterface[interfaceInfo.name]?.tx || 0,
                 footer: `Unable to read counters for ${interfaceInfo.name}.`,
                 selected: selection.selected && selection.selected.name === interfaceInfo.name,
-                hasRate: false
+                hasRate: false,
+                rxHistory: history.rx,
+                txHistory: history.tx
             };
         }
 
@@ -135,6 +145,14 @@ var SessionMonitor = class {
             ? (selection.selectionMode === "preferred" ? "preferred" : "auto")
             : interfaceInfo.operState;
 
+        const history = this._appendHistory(
+            interfaceInfo.name,
+            hasRate ? rxRate : 0,
+            hasRate ? txRate : 0,
+            historyLength,
+            smoothingMode
+        );
+
         return {
             available: true,
             interfaceInfo,
@@ -148,12 +166,15 @@ var SessionMonitor = class {
                 ? selection.selectionNote
                 : footer,
             selected: selection.selected && selection.selected.name === interfaceInfo.name,
-            hasRate
+            hasRate,
+            rxHistory: history.rx,
+            txHistory: history.tx
         };
     }
 
-    _buildAggregateRow(rows) {
+    _buildAggregateRow(rows, historyLength, smoothingMode) {
         if (rows.length === 0) {
+            const history = this._appendAggregateHistory(0, 0, historyLength, smoothingMode);
             return {
                 available: false,
                 title: "Group All Interfaces",
@@ -162,11 +183,13 @@ var SessionMonitor = class {
                 txRate: 0,
                 totalRxBytes: 0,
                 totalTxBytes: 0,
-                footer: "No visible interfaces are currently contributing to the aggregate."
+                footer: "No visible interfaces are currently contributing to the aggregate.",
+                rxHistory: history.rx,
+                txHistory: history.tx
             };
         }
 
-        return rows.reduce((result, row) => {
+        const aggregate = rows.reduce((result, row) => {
             result.rxRate += row.hasRate ? row.rxRate : 0;
             result.txRate += row.hasRate ? row.txRate : 0;
             result.totalRxBytes += row.totalRxBytes;
@@ -181,6 +204,68 @@ var SessionMonitor = class {
             totalRxBytes: 0,
             totalTxBytes: 0,
             footer: "Combined live rates and session totals for the currently visible interfaces."
+        });
+
+        const history = this._appendAggregateHistory(aggregate.rxRate, aggregate.txRate, historyLength, smoothingMode);
+        aggregate.rxHistory = history.rx;
+        aggregate.txHistory = history.tx;
+        return aggregate;
+    }
+
+    _appendHistory(key, rxValue, txValue, historyLength, smoothingMode) {
+        if (!this._historyByInterface[key]) {
+            this._historyByInterface[key] = { rx: [], tx: [] };
+        }
+
+        this._pushValue(this._historyByInterface[key].rx, rxValue, historyLength);
+        this._pushValue(this._historyByInterface[key].tx, txValue, historyLength);
+
+        return {
+            rx: this._smoothSeries(this._historyByInterface[key].rx, smoothingMode),
+            tx: this._smoothSeries(this._historyByInterface[key].tx, smoothingMode)
+        };
+    }
+
+    _appendAggregateHistory(rxValue, txValue, historyLength, smoothingMode) {
+        this._pushValue(this._aggregateHistory.rx, rxValue, historyLength);
+        this._pushValue(this._aggregateHistory.tx, txValue, historyLength);
+
+        return {
+            rx: this._smoothSeries(this._aggregateHistory.rx, smoothingMode),
+            tx: this._smoothSeries(this._aggregateHistory.tx, smoothingMode)
+        };
+    }
+
+    _pushValue(series, value, historyLength) {
+        series.push(Math.max(0, value));
+        while (series.length > historyLength) {
+            series.shift();
+        }
+    }
+
+    _smoothSeries(series, mode) {
+        if (mode === "none") {
+            return series.slice();
+        }
+
+        if (mode === "exponential") {
+            const smoothed = [];
+            let previous = series[0] || 0;
+            const alpha = 0.35;
+
+            series.forEach(value => {
+                previous = (alpha * value) + ((1 - alpha) * previous);
+                smoothed.push(previous);
+            });
+
+            return smoothed;
+        }
+
+        return series.map((value, index) => {
+            const start = Math.max(0, index - 2);
+            const window = series.slice(start, index + 1);
+            const sum = window.reduce((result, item) => result + item, 0);
+            return sum / window.length;
         });
     }
 
