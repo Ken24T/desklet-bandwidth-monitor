@@ -6,7 +6,7 @@ It should be updated whenever user-visible behaviour, settings, installation ste
 
 ## Status
 
-The project is currently in early implementation.
+The project is currently in its initial stable release stage.
 
 What exists today:
 
@@ -25,7 +25,7 @@ What exists today:
 
 What does not exist yet:
 
-- richer settings controls such as per-interface nicknames, colours, and ordering tools
+- richer settings controls such as per-interface colours and ordering tools
 
 ## Intended Purpose
 
@@ -94,6 +94,8 @@ Current visible behaviour:
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
+- sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
+- when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
 - custom theme colours can be recovered quickly by applying a curated palette or resetting back to the dark or light baseline colour sets
 - curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
@@ -119,8 +121,9 @@ Once the desklet is implemented, the expected user flow will be:
 Current limitations are expected for this early phase:
 
 - interface ordering is still basic
-- per-interface nicknames, colours, and richer layout controls are not implemented yet
+- per-interface colours and richer layout controls are not implemented yet
 - theme controls are intentionally restrained rather than fully granular
+- very low sampling intervals increase wakeups and redraw frequency, so they are a responsiveness tradeoff rather than a free performance gain
 
 ## Document Maintenance Rule
 
