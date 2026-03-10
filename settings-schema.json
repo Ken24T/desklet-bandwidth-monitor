@@ -53,17 +53,39 @@
     "description": "Include VPN and tunnel interfaces in auto selection",
     "tooltip": "Allow auto-detection to choose VPN interfaces such as tun0 or wg0 as the primary interface. VPN rows are shown by default unless you explicitly filter visible interfaces."
   },
+  "include-loopback-interfaces": {
+    "type": "switch",
+    "default": false,
+    "description": "Include loopback interfaces in row controls",
+    "tooltip": "Show loopback interfaces such as lo in the per-interface row controls and allow them to appear as desklet rows when enabled there."
+  },
+  "interface-row-controls": {
+    "type": "custom",
+    "file": "InterfaceVisibilityWidget.py",
+    "widget": "InterfaceVisibilityWidget",
+    "state-key": "visible-interfaces",
+    "reset-key": "reset-interface-request",
+    "include-loopback-key": "include-loopback-interfaces",
+    "default": "controls",
+    "description": "Interfaces"
+  },
   "visible-interfaces": {
     "type": "entry",
     "default": "",
-    "description": "Visible interfaces",
-    "tooltip": "Comma-separated interface names. Leave blank to show all automatically discovered interfaces."
+    "description": "Visible interfaces state",
+    "dependency": "selection-mode=__hidden__"
   },
   "show-group-all": {
     "type": "switch",
     "default": true,
     "description": "Show Group All Interfaces row",
-    "tooltip": "Display the aggregate row for the currently visible interfaces."
+    "tooltip": "Display the aggregate row for the monitored interfaces, including interfaces whose individual rows are currently hidden."
+  },
+  "reset-interface-request": {
+    "type": "entry",
+    "default": "",
+    "description": "Reset interface request",
+    "dependency": "selection-mode=__hidden__"
   },
   "layout-header": {
     "type": "header",
@@ -110,12 +132,6 @@
       "Centre": "center",
       "Right": "right"
     }
-  },
-  "show-interface-inventory": {
-    "type": "switch",
-    "default": true,
-    "description": "Show discovered interface list",
-    "tooltip": "Display the discovered interfaces and their current state below the desklet rows."
   },
   "charts-header": {
     "type": "header",

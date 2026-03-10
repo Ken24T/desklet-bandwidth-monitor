@@ -20,7 +20,7 @@ What exists today:
 - sparkline charts with configurable history length and smoothing mode
 - more defensive handling for disappearing interfaces, counter resets, and suspicious spikes
 - package creation for release artifacts
-- a working desklet settings panel for sampling, visibility, layout, and sparkline options
+- a working desklet settings panel for sampling, per-interface row controls, layout, and sparkline options
 
 What does not exist yet:
 
@@ -76,17 +76,19 @@ Current visible behaviour:
 - the desklet can display a header
 - the desklet exposes a Cinnamon settings panel for sampling, interface selection, and layout options
 - the settings panel is grouped into functional sections for general behaviour, interfaces, layout, and charts
+- the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
+- loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
+- individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
 - VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
-- multiple interface rows can be shown together
+- multiple interface rows can be shown together or hidden individually
 - per-session RX and TX totals are shown for each visible row
-- an aggregate Group All Interfaces row can be shown for the visible set
+- an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
-- the discovered interface inventory can be shown or hidden
 - sparkline charts can be shown or hidden
 - history length and smoothing behaviour can be adjusted
 - the desklet waits for a stable sample after counter resets or interface return
@@ -106,7 +108,6 @@ Once the desklet is implemented, the expected user flow will be:
 
 Current limitations are expected for this early phase:
 
-- visibility uses a simple comma-separated interface list rather than a richer settings UI
 - interface ordering is still basic
 - per-interface nicknames, colours, and richer layout controls are not implemented yet
 - chart styling is still simple rather than fully themeable
