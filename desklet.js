@@ -4,6 +4,7 @@ const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Gettext = imports.gettext;
 const Main = imports.ui.main;
+const Tooltips = imports.ui.tooltips;
 
 const UUID = "bandwidth-monitor@Ken24T";
 const DeskletManager = imports.ui.deskletManager;
@@ -105,7 +106,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _createRowWidget(title) {
         const container = new St.BoxLayout({
             vertical: true,
-            style_class: "bandwidth-monitor__row"
+            style_class: "bandwidth-monitor__row",
+            reactive: true,
+            track_hover: true
         });
 
         const header = new St.BoxLayout({
@@ -160,6 +163,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         footer.clutter_text.line_wrap = true;
         footer.clutter_text.ellipsize = 0;
         const sparkline = new Sparkline.SparklineView();
+        const tooltip = new Tooltips.Tooltip(container, "");
 
         container.add_child(header);
         container.add_child(totalsRow);
@@ -176,6 +180,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             totalsRow,
             totalsTitleLabel,
             sparkline,
+            tooltip,
             footer,
             rxValue,
             txValue,
@@ -318,6 +323,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _syncRowWidgets(rows, aggregate) {
         const visibleKeys = [];
         const shownInterfaceNames = this._resolveShownInterfaceNames(rows);
+        const visibleRowCount = rows.filter(row => shownInterfaceNames.has(row.interfaceInfo.name)).length;
 
         rows.forEach(row => {
             const key = `row:${row.interfaceInfo.name}`;
@@ -339,6 +345,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
+            widget.tooltip.set_markup(this._buildInterfaceTooltipMarkup(row, displayedMetrics));
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
 
             if (widget.container.visible) {
@@ -367,6 +374,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
+            widget.tooltip.set_markup(this._buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount));
             widget.container.visible = true;
         }
 
@@ -622,6 +630,66 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         }
 
         return state || "";
+    }
+
+    _buildInterfaceTooltipMarkup(row, displayedMetrics) {
+        const lines = [
+            `<b>${this._escapeMarkup(row.title)}</b>`,
+            `${_("Device")}: <b>${this._escapeMarkup(row.interfaceInfo.name)}</b>`,
+            `${_("Type")}: <b>${this._escapeMarkup(row.interfaceInfo.classification.label)}</b>`,
+            `${_("State")}: <b>${this._escapeMarkup(row.interfaceInfo.operState)}</b>`
+        ];
+
+        if (row.selected) {
+            lines.push(`${_("Role")}: <b>${this._escapeMarkup(row.state === "preferred" ? _("Preferred interface") : _("Auto-selected interface"))}</b>`);
+        }
+
+        if (row.interfaceInfo.isTunnel) {
+            lines.push(`${_("Tunnel")}: <b>${_("Yes")}</b>`);
+        }
+
+        if (row.interfaceInfo.isLoopback) {
+            lines.push(`${_("Loopback")}: <b>${_("Yes")}</b>`);
+        }
+
+        lines.push("");
+        lines.push(`${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`);
+        lines.push(`${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`);
+        lines.push(`${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`);
+        lines.push(`${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`);
+
+        if (row.footer) {
+            lines.push("");
+            lines.push(`${_("Note")}: ${this._escapeMarkup(row.footer)}`);
+        }
+
+        return lines.join("\n");
+    }
+
+    _buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount) {
+        const lines = [
+            `<b>${this._escapeMarkup(aggregate.title)}</b>`,
+            `${_("Visible interfaces")}: <b>${visibleRowCount}</b>`,
+            "",
+            `${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`,
+            `${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`,
+            `${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`,
+            `${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`
+        ];
+
+        if (aggregate.footer) {
+            lines.push("");
+            lines.push(`${_("Note")}: ${this._escapeMarkup(aggregate.footer)}`);
+        }
+
+        return lines.join("\n");
+    }
+
+    _escapeMarkup(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
     }
 
     _getThemePalette() {
