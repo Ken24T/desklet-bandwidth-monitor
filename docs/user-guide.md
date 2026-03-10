@@ -80,6 +80,7 @@ Current visible behaviour:
 - the settings panel now includes theme controls for `Dark`, `Light`, and `Custom` modes
 - in `Custom` mode, the settings panel can apply curated palettes and restore the default dark or light custom colour baselines
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
+- the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
 - individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
 - the desklet shows live RX and TX text values for one interface
@@ -88,12 +89,14 @@ Current visible behaviour:
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
 - VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together or hidden individually
+- interface titles default to the current classification plus device name, but can be renamed per interface for cleaner labels such as `LAN` or `LAN (enp3s0)`
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
 - custom theme colours can be recovered quickly by applying a curated palette or resetting back to the dark or light baseline colour sets
+- curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
 - the desklet uses its own themed shell rather than Cinnamon's default outer desklet decoration
 - sparkline charts can be shown or hidden
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts

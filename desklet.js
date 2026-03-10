@@ -46,6 +46,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("include-tunnel-interfaces", "includeTunnelInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("include-loopback-interfaces", "includeLoopbackInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("interface-display-settings", "interfaceDisplaySettings", this._onInterfaceDisplaySettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("reset-interface-request", "resetInterfaceRequest", this._onResetInterfaceRequested.bind(this));
         this.settings.bind("theme-mode", "themeMode", this._syncDisplaySettings.bind(this));
@@ -259,6 +260,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._tickSample();
     }
 
+    _onInterfaceDisplaySettingsChanged() {
+        this._tickSample();
+    }
+
     _restartSampling() {
         if (this._sampleTimeoutId > 0) {
             Mainloop.source_remove(this._sampleTimeoutId);
@@ -279,6 +284,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             preferredInterface: this.preferredInterface || "",
             includeTunnelInterfaces: this.includeTunnelInterfaces,
             includeLoopbackInterfaces: this.includeLoopbackInterfaces,
+            interfaceDisplaySettings: this.interfaceDisplaySettings || "",
             historyLength: this.historyLength || 60,
             smoothingMode: this.smoothingMode || "moving-average"
         });
@@ -595,6 +601,30 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 secondaryTextColor: "rgb(196, 225, 215)",
                 rxAccentColor: "rgb(125, 221, 153)",
                 txAccentColor: "rgb(255, 181, 92)"
+            },
+            "amber-glow": {
+                deskletBackgroundColor: "rgb(74, 54, 12)",
+                rowBackgroundColor: "rgb(255, 227, 163)",
+                primaryTextColor: "rgb(255, 248, 224)",
+                secondaryTextColor: "rgb(245, 226, 172)",
+                rxAccentColor: "rgb(255, 222, 92)",
+                txAccentColor: "rgb(255, 153, 64)"
+            },
+            "crimson-dusk": {
+                deskletBackgroundColor: "rgb(88, 27, 35)",
+                rowBackgroundColor: "rgb(238, 179, 184)",
+                primaryTextColor: "rgb(255, 241, 243)",
+                secondaryTextColor: "rgb(245, 206, 210)",
+                rxAccentColor: "rgb(255, 164, 115)",
+                txAccentColor: "rgb(255, 96, 96)"
+            },
+            "pale-sky": {
+                deskletBackgroundColor: "rgb(176, 206, 230)",
+                rowBackgroundColor: "rgb(255, 255, 255)",
+                primaryTextColor: "rgb(34, 63, 84)",
+                secondaryTextColor: "rgb(82, 110, 129)",
+                rxAccentColor: "rgb(54, 140, 209)",
+                txAccentColor: "rgb(237, 166, 82)"
             }
         };
 

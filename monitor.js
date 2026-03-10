@@ -38,6 +38,7 @@ var SessionMonitor = class {
     }
 
     sample(config = {}) {
+        const interfaceDisplaySettings = this._parseInterfaceDisplaySettings(config.interfaceDisplaySettings || "");
         const selection = this._catalog.resolveSelection(
             config.selectionMode || "auto",
             config.preferredInterface || "",
@@ -53,7 +54,7 @@ var SessionMonitor = class {
         const nowUs = GLib.get_monotonic_time();
         const historyLength = Math.max(10, config.historyLength || 60);
         const smoothingMode = config.smoothingMode || "moving-average";
-        const rows = visibleInterfaces.map(interfaceInfo => this._buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode));
+        const rows = visibleInterfaces.map(interfaceInfo => this._buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode, interfaceDisplaySettings));
         const availableRows = rows.filter(row => row.available);
         const aggregate = this._buildAggregateRow(availableRows, historyLength, smoothingMode);
 
@@ -88,15 +89,16 @@ var SessionMonitor = class {
         return defaults;
     }
 
-    _buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode) {
+    _buildRow(interfaceInfo, nowUs, selection, historyLength, smoothingMode, interfaceDisplaySettings) {
         const counters = this._readCounters(interfaceInfo.name);
+        const title = this._resolveInterfaceTitle(interfaceInfo, interfaceDisplaySettings[interfaceInfo.name]);
         if (!counters) {
             delete this._previousByInterface[interfaceInfo.name];
             const history = this._appendHistory(interfaceInfo.name, 0, 0, historyLength, smoothingMode);
             return {
                 available: false,
                 interfaceInfo,
-                title: interfaceInfo.label,
+                title,
                 state: "unavailable",
                 rxRate: 0,
                 txRate: 0,
@@ -170,7 +172,7 @@ var SessionMonitor = class {
         return {
             available: true,
             interfaceInfo,
-            title: interfaceInfo.label,
+            title,
             state,
             rxRate,
             txRate,
@@ -212,7 +214,7 @@ var SessionMonitor = class {
         }, {
             available: true,
             title: "Group All",
-            state: `${rows.length} rows`,
+            state: "",
             rxRate: 0,
             txRate: 0,
             totalRxBytes: 0,
@@ -224,6 +226,48 @@ var SessionMonitor = class {
         aggregate.rxHistory = history.rx;
         aggregate.txHistory = history.tx;
         return aggregate;
+    }
+
+    _resolveInterfaceTitle(interfaceInfo, displayInfo = {}) {
+        const customName = typeof displayInfo.customName === "string"
+            ? displayInfo.customName.trim()
+            : "";
+        const showSystemName = typeof displayInfo.showSystemName === "boolean"
+            ? displayInfo.showSystemName
+            : true;
+
+        if (customName) {
+            return showSystemName ? `${customName} (${interfaceInfo.name})` : customName;
+        }
+
+        return showSystemName ? interfaceInfo.label : interfaceInfo.classification.label;
+    }
+
+    _parseInterfaceDisplaySettings(rawValue) {
+        if (!rawValue) {
+            return {};
+        }
+
+        try {
+            const parsed = JSON.parse(rawValue);
+            if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+                return {};
+            }
+
+            return Object.entries(parsed).reduce((result, [name, value]) => {
+                if (!value || typeof value !== "object" || Array.isArray(value)) {
+                    return result;
+                }
+
+                result[name] = {
+                    customName: typeof value.customName === "string" ? value.customName : "",
+                    showSystemName: typeof value.showSystemName === "boolean" ? value.showSystemName : true
+                };
+                return result;
+            }, {});
+        } catch (error) {
+            return {};
+        }
     }
 
     _appendHistory(key, rxValue, txValue, historyLength, smoothingMode) {

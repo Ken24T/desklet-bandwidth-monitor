@@ -53,7 +53,10 @@
       "Reset to dark baseline": "reset-dark",
       "Reset to light baseline": "reset-light",
       "Ocean blue": "ocean-blue",
-      "Forest mist": "forest-mist"
+      "Forest mist": "forest-mist",
+      "Amber glow": "amber-glow",
+      "Crimson dusk": "crimson-dusk",
+      "Pale sky": "pale-sky"
     }
   },
   "desklet-background-color": {
@@ -128,10 +131,17 @@
     "file": "InterfaceVisibilityWidget.py",
     "widget": "InterfaceVisibilityWidget",
     "state-key": "visible-interfaces",
+    "display-key": "interface-display-settings",
     "reset-key": "reset-interface-request",
     "include-loopback-key": "include-loopback-interfaces",
     "default": "controls",
     "description": "Interfaces"
+  },
+  "interface-display-settings": {
+    "type": "entry",
+    "default": "",
+    "description": "Interface display settings",
+    "dependency": "selection-mode=__hidden__"
   },
   "visible-interfaces": {
     "type": "entry",
