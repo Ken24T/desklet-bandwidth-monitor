@@ -90,6 +90,7 @@ Current visible behaviour:
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
 - sparkline charts can be shown or hidden
+- sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
 - the desklet waits for a stable sample after counter resets or interface return
 - obviously implausible spike samples are suppressed when recent history makes them suspect

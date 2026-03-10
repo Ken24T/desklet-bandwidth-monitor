@@ -309,7 +309,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
                 visible: this.showSparklines,
-                height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
+                height: Math.max(40, Math.round(43 * (this.fontScale || 1)))
             });
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
 
@@ -333,7 +333,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
                 visible: this.showSparklines,
-                height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
+                height: Math.max(40, Math.round(43 * (this.fontScale || 1)))
             });
             widget.container.visible = true;
         }
@@ -386,7 +386,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.totalsTitleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
-        widget.sparkline.actor.style = `height: ${Math.max(32, Math.round(34 * fontScale))}px;`;
+        widget.sparkline.actor.style = `height: ${Math.max(40, Math.round(43 * fontScale))}px;`;
         widget.sparkline.actor.visible = this.showSparklines;
 
         [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {

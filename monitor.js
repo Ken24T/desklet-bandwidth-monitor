@@ -191,7 +191,7 @@ var SessionMonitor = class {
             const history = this._appendAggregateHistory(0, 0, historyLength, smoothingMode);
             return {
                 available: false,
-                title: "Group All Interfaces",
+                title: "Group All",
                 state: "idle",
                 rxRate: 0,
                 txRate: 0,
@@ -211,7 +211,7 @@ var SessionMonitor = class {
             return result;
         }, {
             available: true,
-            title: "Group All Interfaces",
+            title: "Group All",
             state: `${rows.length} rows`,
             rxRate: 0,
             txRate: 0,
