@@ -44,9 +44,25 @@
     color: rgba(255, 255, 255, 0.68);
 }
 
-.bandwidth-monitor__metrics {
-    spacing: 10px;
-    flex-wrap: wrap;
+.bandwidth-monitor__totals {
+    spacing: 12px;
+}
+
+.bandwidth-monitor__totals-title {
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: bold;
+}
+
+.bandwidth-monitor__inline-metric {
+    spacing: 8px;
+}
+
+.bandwidth-monitor__inline-metric-label {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.bandwidth-monitor__inline-metric-value {
+    font-weight: bold;
 }
 
 .bandwidth-monitor__metric {
@@ -54,11 +70,13 @@
     border-radius: 8px;
     spacing: 4px;
     background-color: rgba(255, 255, 255, 0.04);
+    min-width: 112px;
 }
 
 .bandwidth-monitor__metric--compact {
     padding: 6px 10px;
     spacing: 6px;
+    min-width: 92px;
 }
 
 .bandwidth-monitor__metric-label {
@@ -69,6 +87,13 @@
 .bandwidth-monitor__metric-value {
     font-size: 1.05em;
     font-weight: bold;
+}
+
+.bandwidth-monitor__metric--compact .bandwidth-monitor__metric-value,
+.bandwidth-monitor__metric--compact .bandwidth-monitor__metric-label,
+.bandwidth-monitor__metric .bandwidth-monitor__metric-value,
+.bandwidth-monitor__metric .bandwidth-monitor__metric-label {
+    text-align: center;
 }
 
 .bandwidth-monitor__metric-label--compact,
