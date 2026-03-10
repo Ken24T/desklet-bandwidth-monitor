@@ -75,8 +75,8 @@ The current implementation establishes:
 Current visible behaviour:
 
 - the desklet can display a header
-- the desklet exposes a Cinnamon settings panel for sampling, interface selection, and layout options
-- the settings panel is grouped into functional sections for general behaviour, interfaces, layout, and charts
+- the desklet exposes a tabbed Cinnamon settings panel for sampling, interface selection, appearance, and chart options
+- the settings panel is split across native `General`, `Interfaces`, `Appearance`, and `Charts` tabs with related settings grouped on each page
 - the settings panel now includes theme controls for `Dark`, `Light`, and `Custom` modes
 - in `Custom` mode, the settings panel can apply curated palettes and restore the default dark or light custom colour baselines
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button

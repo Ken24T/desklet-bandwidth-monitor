@@ -1,4 +1,58 @@
 {
+  "layout1": {
+    "type": "layout",
+    "pages": ["page-general", "page-interfaces", "page-appearance", "page-charts"],
+    "page-general": {
+      "type": "page",
+      "title": "General",
+      "sections": ["section-general-behaviour"]
+    },
+    "page-interfaces": {
+      "type": "page",
+      "title": "Interfaces",
+      "sections": ["section-interface-selection", "section-interface-rows"]
+    },
+    "page-appearance": {
+      "type": "page",
+      "title": "Appearance",
+      "sections": ["section-layout-display", "section-theme"]
+    },
+    "page-charts": {
+      "type": "page",
+      "title": "Charts",
+      "sections": ["section-charts"]
+    },
+    "section-general-behaviour": {
+      "type": "section",
+      "title": "General Behaviour",
+      "keys": ["sample-seconds", "rate-unit-mode", "show-header"]
+    },
+    "section-interface-selection": {
+      "type": "section",
+      "title": "Selection and Visibility",
+      "keys": ["selection-mode", "preferred-interface", "include-tunnel-interfaces", "include-loopback-interfaces", "show-group-all"]
+    },
+    "section-interface-rows": {
+      "type": "section",
+      "title": "Per-Interface Rows",
+      "keys": ["interface-row-controls"]
+    },
+    "section-layout-display": {
+      "type": "section",
+      "title": "Layout and Display",
+      "keys": ["show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
+    },
+    "section-theme": {
+      "type": "section",
+      "title": "Theme",
+      "keys": ["theme-mode", "manual-theme-action", "desklet-background-color", "row-background-color", "primary-text-color", "secondary-text-color", "rx-accent-color", "tx-accent-color"]
+    },
+    "section-charts": {
+      "type": "section",
+      "title": "Charts",
+      "keys": ["show-sparklines", "history-length", "smoothing-mode"]
+    }
+  },
   "general-header": {
     "type": "header",
     "description": "General"
