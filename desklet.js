@@ -12,6 +12,7 @@ const Settings = imports.ui.settings;
 
 const ENABLED_DESKLETS_KEY = "enabled-desklets";
 const DEFAULT_PRIMARY_MONITOR_MARGIN = 48;
+const TEXT_REFRESH_INTERVAL_US = 1000000;
 
 const deskletMeta = DeskletManager.deskletMeta[UUID] || null;
 const deskletDir = deskletMeta
@@ -38,6 +39,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._sampleTimeoutId = 0;
         this._monitor = new Monitor.SessionMonitor();
         this._rowsByKey = {};
+        this._lastTextMetricsUpdateUs = 0;
+        this._textMetricsByInterface = {};
+        this._aggregateTextMetrics = null;
+        this._pendingTextMetricsByInterface = {};
+        this._pendingAggregateTextMetrics = null;
 
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
         this.settings.bind("sample-seconds", "sampleSeconds", this._onSamplingSettingsChanged.bind(this));
@@ -256,6 +262,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _onSamplingSettingsChanged() {
         this._monitor.reset();
+        this._resetTextMetricsCache();
         this._restartSampling();
         this._tickSample();
     }
@@ -270,12 +277,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             this._sampleTimeoutId = 0;
         }
 
-        const intervalSeconds = this._getSampleInterval();
-        this._sampleTimeoutId = Mainloop.timeout_add_seconds(intervalSeconds, () => this._tickSample());
+        const intervalMilliseconds = this._getSampleIntervalMilliseconds();
+        this._sampleTimeoutId = Mainloop.timeout_add(intervalMilliseconds, () => this._tickSample());
     }
 
-    _getSampleInterval() {
-        return Math.max(1, this.sampleSeconds || 1);
+    _getSampleIntervalMilliseconds() {
+        const intervalSeconds = Math.max(0.25, Number(this.sampleSeconds) || 1);
+        return Math.max(50, Math.round(intervalSeconds * 1000));
     }
 
     _tickSample() {
@@ -288,6 +296,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             historyLength: this.historyLength || 60,
             smoothingMode: this.smoothingMode || "moving-average"
         });
+        this._refreshTextMetricsCache(snapshot);
 
         if (!snapshot.hasVisibleRows && !this.showGroupAll) {
             this._renderUnavailable("No visible interfaces are currently selected.");
@@ -313,13 +322,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         rows.forEach(row => {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
+            const displayedMetrics = this._getDisplayedMetrics(row, row.interfaceInfo.name);
 
             widget.titleLabel.set_text(row.title);
             widget.stateLabel.set_text(this._formatDisplayState(row.state));
-            widget.rxValue.valueWidget.set_text(row.hasRate ? this._formatRate(row.rxRate) : "--");
-            widget.txValue.valueWidget.set_text(row.hasRate ? this._formatRate(row.txRate) : "--");
-            widget.totalRxValue.valueWidget.set_text(this._formatBytes(row.totalRxBytes));
-            widget.totalTxValue.valueWidget.set_text(this._formatBytes(row.totalTxBytes));
+            widget.rxValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--");
+            widget.txValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--");
+            widget.totalRxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalRxBytes));
+            widget.totalTxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalTxBytes));
             widget.footer.set_text(row.footer);
             widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
@@ -340,13 +350,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const key = "aggregate";
             const widget = this._ensureRowWidget(key, aggregate.title);
             visibleKeys.push(key);
+            const displayedMetrics = this._getDisplayedMetrics(aggregate, "aggregate");
 
             widget.titleLabel.set_text(aggregate.title);
             widget.stateLabel.set_text(this._formatDisplayState(aggregate.state));
-            widget.rxValue.valueWidget.set_text(aggregate.available ? this._formatRate(aggregate.rxRate) : "--");
-            widget.txValue.valueWidget.set_text(aggregate.available ? this._formatRate(aggregate.txRate) : "--");
-            widget.totalRxValue.valueWidget.set_text(this._formatBytes(aggregate.totalRxBytes));
-            widget.totalTxValue.valueWidget.set_text(this._formatBytes(aggregate.totalTxBytes));
+            widget.rxValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--");
+            widget.txValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--");
+            widget.totalRxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalRxBytes));
+            widget.totalTxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalTxBytes));
             widget.footer.set_text(aggregate.footer);
             widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
@@ -445,6 +456,92 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         Object.keys(this._rowsByKey).forEach(key => {
             this._rowsByKey[key].container.visible = false;
         });
+    }
+
+    _resetTextMetricsCache() {
+        this._lastTextMetricsUpdateUs = 0;
+        this._textMetricsByInterface = {};
+        this._aggregateTextMetrics = null;
+        this._pendingTextMetricsByInterface = {};
+        this._pendingAggregateTextMetrics = null;
+    }
+
+    _refreshTextMetricsCache(snapshot) {
+        const nowUs = GLib.get_monotonic_time();
+        snapshot.rows.forEach(row => {
+            const key = row.interfaceInfo.name;
+            const previous = this._pendingTextMetricsByInterface[key] || null;
+            this._pendingTextMetricsByInterface[key] = this._mergeDisplayedMetrics(previous, row);
+        });
+        this._pendingAggregateTextMetrics = this._mergeDisplayedMetrics(
+            this._pendingAggregateTextMetrics,
+            snapshot.aggregate
+        );
+
+        if (this._lastTextMetricsUpdateUs === 0 || (nowUs - this._lastTextMetricsUpdateUs) >= TEXT_REFRESH_INTERVAL_US) {
+            this._lastTextMetricsUpdateUs = nowUs;
+            this._textMetricsByInterface = { ...this._pendingTextMetricsByInterface };
+            this._aggregateTextMetrics = this._pendingAggregateTextMetrics;
+            this._pendingTextMetricsByInterface = {};
+            this._pendingAggregateTextMetrics = null;
+        }
+    }
+
+    _captureDisplayedMetrics(row) {
+        const hasRate = row.available && (typeof row.hasRate === "boolean" ? row.hasRate : true);
+        return {
+            hasRate,
+            rxRate: row.rxRate,
+            txRate: row.txRate,
+            totalRxBytes: row.totalRxBytes,
+            totalTxBytes: row.totalTxBytes,
+            sawNonZeroRate: hasRate && (row.rxRate > 0 || row.txRate > 0)
+        };
+    }
+
+    _mergeDisplayedMetrics(previous, row) {
+        const current = this._captureDisplayedMetrics(row);
+        if (!previous) {
+            return current;
+        }
+
+        const merged = {
+            hasRate: previous.hasRate || current.hasRate,
+            rxRate: current.rxRate,
+            txRate: current.txRate,
+            totalRxBytes: current.totalRxBytes,
+            totalTxBytes: current.totalTxBytes,
+            sawNonZeroRate: previous.sawNonZeroRate || current.sawNonZeroRate
+        };
+
+        if (!current.hasRate) {
+            merged.rxRate = previous.rxRate;
+            merged.txRate = previous.txRate;
+            return merged;
+        }
+
+        if (current.sawNonZeroRate) {
+            return merged;
+        }
+
+        if (previous.sawNonZeroRate) {
+            merged.rxRate = previous.rxRate;
+            merged.txRate = previous.txRate;
+        }
+
+        return merged;
+    }
+
+    _getDisplayedMetrics(row, key) {
+        if (!row.available) {
+            return this._captureDisplayedMetrics(row);
+        }
+
+        if (key === "aggregate") {
+            return this._aggregateTextMetrics || this._captureDisplayedMetrics(row);
+        }
+
+        return this._textMetricsByInterface[key] || this._captureDisplayedMetrics(row);
     }
 
     _onResetInterfaceRequested() {

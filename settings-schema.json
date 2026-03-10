@@ -6,12 +6,12 @@
   "sample-seconds": {
     "type": "spinbutton",
     "default": 1,
-    "min": 1,
+    "min": 0.25,
     "max": 10,
-    "step": 1,
+    "step": 0.25,
     "units": "s",
     "description": "Sampling interval",
-    "tooltip": "How often the desklet should sample network counters."
+    "tooltip": "How often the desklet should sample network counters. Lower values refresh faster but increase CPU wakeups."
   },
   "rate-unit-mode": {
     "type": "combobox",
