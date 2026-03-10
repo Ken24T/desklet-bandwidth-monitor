@@ -3,11 +3,15 @@ const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Gettext = imports.gettext;
+const Main = imports.ui.main;
 
 const UUID = "bandwidth-monitor@Ken24T";
 const DeskletManager = imports.ui.deskletManager;
 const Desklet = imports.ui.desklet;
 const Settings = imports.ui.settings;
+
+const ENABLED_DESKLETS_KEY = "enabled-desklets";
+const DEFAULT_PRIMARY_MONITOR_MARGIN = 48;
 
 const deskletMeta = DeskletManager.deskletMeta[UUID] || null;
 const deskletDir = deskletMeta
@@ -72,27 +76,19 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             text: _("Bandwidth Monitor")
         });
 
-        this._statusLabel = new St.Label({
-            style_class: "bandwidth-monitor__status"
-        });
-
         this._panelBox = new St.BoxLayout({
             vertical: true,
             style_class: "bandwidth-monitor__panel"
         });
 
-        this._hintLabel = new St.Label({
-            style_class: "bandwidth-monitor__hint"
-        });
-
         this._inventoryLabel = new St.Label({
             style_class: "bandwidth-monitor__inventory"
         });
+        this._inventoryLabel.clutter_text.line_wrap = true;
+        this._inventoryLabel.clutter_text.ellipsize = 0;
 
         this._contentBox.add_child(this._titleLabel);
-        this._contentBox.add_child(this._statusLabel);
         this._contentBox.add_child(this._panelBox);
-        this._contentBox.add_child(this._hintLabel);
         this._contentBox.add_child(this._inventoryLabel);
 
         this.setContent(this._contentBox);
@@ -146,8 +142,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         const footer = new St.Label({
             style_class: "bandwidth-monitor__row-footer",
-            text: _("Waiting for live sampling in the next milestone.")
+            text: _("Waiting for the first stable sample.")
         });
+        footer.clutter_text.line_wrap = true;
+        footer.clutter_text.ellipsize = 0;
         const sparkline = new Sparkline.SparklineView();
 
         container.add_child(header);
@@ -217,12 +215,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._contentBox.style = `spacing: ${spacing}px;`;
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em;`;
-        this._statusLabel.style = `font-size: ${0.95 * fontScale}em; color: rgba(255, 255, 255, 0.82);`;
-        this._hintLabel.style = `font-size: ${0.9 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
         this._inventoryLabel.style = `font-size: ${0.84 * fontScale}em; color: rgba(255, 255, 255, 0.64);`;
         this._titleLabel.x_align = alignment;
-        this._statusLabel.x_align = alignment;
-        this._hintLabel.x_align = alignment;
         this._inventoryLabel.x_align = alignment;
         this._inventoryLabel.visible = this.showInterfaceInventory;
 
@@ -272,20 +266,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _renderUnavailable(reason) {
-        const sampleLabel = this._getSampleInterval();
-
-        this._statusLabel.set_text(`Waiting for a usable interface at ${sampleLabel}s sampling.`);
-        this._hintLabel.set_text("Multi-interface monitoring and session totals are active in this phase.");
         this._hideAllRows();
         this._syncInterfaceInventory(reason);
     }
 
     _renderSnapshot(snapshot) {
-        const sampleLabel = this._getSampleInterval();
-        const selectedLabel = snapshot.selectedInterface ? snapshot.selectedInterface.label : "auto";
-
-        this._statusLabel.set_text(`Monitoring ${snapshot.rows.length} interface rows every ${sampleLabel}s. Primary selection: ${selectedLabel}.`);
-        this._hintLabel.set_text("Multi-interface monitoring and session totals are active in this phase.");
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
         this._syncInterfaceInventory();
     }
@@ -364,9 +349,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
         widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.68);`;
         widget.footer.style = `font-size: ${0.88 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
-        widget.header.x_align = Clutter.ActorAlign.CENTER;
-        widget.headerInfo.x_align = Clutter.ActorAlign.CENTER;
-        widget.liveMetrics.x_align = Clutter.ActorAlign.CENTER;
+        widget.header.x_align = Clutter.ActorAlign.START;
+        widget.headerInfo.x_align = Clutter.ActorAlign.START;
+        widget.liveMetrics.x_align = Clutter.ActorAlign.START;
         widget.header.y_align = Clutter.ActorAlign.CENTER;
         widget.headerInfo.y_align = Clutter.ActorAlign.CENTER;
         widget.liveMetrics.y_align = Clutter.ActorAlign.CENTER;
@@ -442,9 +427,53 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     on_desklet_added_to_desktop() {
+        this._ensureSaneStartupPosition();
         this._syncHeader();
         this._restartSampling();
         this._tickSample();
+    }
+
+    _ensureSaneStartupPosition() {
+        const primaryMonitor = Main.layoutManager.primaryMonitor;
+        if (!primaryMonitor) {
+            return;
+        }
+
+        const [currentX, currentY] = this.actor.get_position();
+        const withinPrimaryMonitor = currentX >= primaryMonitor.x
+            && currentY >= primaryMonitor.y
+            && currentX < (primaryMonitor.x + primaryMonitor.width)
+            && currentY < (primaryMonitor.y + primaryMonitor.height);
+
+        if (withinPrimaryMonitor) {
+            return;
+        }
+
+        const targetX = primaryMonitor.x + DEFAULT_PRIMARY_MONITOR_MARGIN;
+        const targetY = primaryMonitor.y + DEFAULT_PRIMARY_MONITOR_MARGIN;
+
+        this.actor.set_position(targetX, targetY);
+        this._persistDeskletPosition(targetX, targetY);
+    }
+
+    _persistDeskletPosition(x, y) {
+        const enabledDesklets = global.settings.get_strv(ENABLED_DESKLETS_KEY);
+        const updatedDesklets = enabledDesklets.map(definition => {
+            const elements = definition.split(":");
+            if (elements.length !== 4) {
+                return definition;
+            }
+
+            if (elements[0] !== this.metadata.uuid || parseInt(elements[1], 10) !== this.instance_id) {
+                return definition;
+            }
+
+            elements[2] = String(Math.round(x));
+            elements[3] = String(Math.round(y));
+            return elements.join(":");
+        });
+
+        global.settings.set_strv(ENABLED_DESKLETS_KEY, updatedDesklets);
     }
 
     on_desklet_removed() {

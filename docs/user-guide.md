@@ -20,10 +20,11 @@ What exists today:
 - sparkline charts with configurable history length and smoothing mode
 - more defensive handling for disappearing interfaces, counter resets, and suspicious spikes
 - package creation for release artifacts
+- a working desklet settings panel for sampling, visibility, layout, and sparkline options
 
 What does not exist yet:
 
-- full settings experience
+- richer settings controls such as per-interface nicknames, colours, and ordering tools
 
 ## Intended Purpose
 
@@ -60,7 +61,7 @@ For packaged installation, extract the packaged UUID directory into `~/.local/sh
 
 ## Current Behaviour
 
-At the current stage, the desklet provides a static shell intended for development validation rather than end-user use.
+At the current stage, the desklet provides a working live monitor with a basic but functional settings experience.
 
 The current implementation establishes:
 
@@ -73,11 +74,12 @@ The current implementation establishes:
 Current visible behaviour:
 
 - the desklet can display a header
+- the desklet exposes a Cinnamon settings panel for sampling, interface selection, and layout options
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
-- tunnel interfaces can be excluded from or included in automatic selection
+- VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the visible set
@@ -88,6 +90,7 @@ Current visible behaviour:
 - history length and smoothing behaviour can be adjusted
 - the desklet waits for a stable sample after counter resets or interface return
 - obviously implausible spike samples are suppressed when recent history makes them suspect
+- the layout focuses on the interface rows without extra summary text above or below the monitor cards
 
 ## Planned User Workflow
 
