@@ -1,12 +1,30 @@
+const GLib = imports.gi.GLib;
 const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
+const Gettext = imports.gettext;
 
+const UUID = "bandwidth-monitor@Ken24T";
+const DeskletManager = imports.ui.deskletManager;
 const Desklet = imports.ui.desklet;
-const Formatting = imports.formatting;
 const Settings = imports.ui.settings;
+
+const deskletMeta = DeskletManager.deskletMeta[UUID] || null;
+const deskletDir = deskletMeta
+    ? deskletMeta.path
+    : GLib.build_filenamev([GLib.get_home_dir(), ".local", "share", "cinnamon", "desklets", UUID]);
+
+imports.searchPath.unshift(deskletDir);
+
+const Formatting = imports.formatting;
 const Monitor = imports.monitor;
 const Sparkline = imports.sparkline;
+
+Gettext.bindtextdomain(UUID, GLib.build_filenamev([deskletDir, "locale"]));
+
+function _(text) {
+    return Gettext.dgettext(UUID, text);
+}
 
 class BandwidthMonitorDesklet extends Desklet.Desklet {
     constructor(metadata, deskletId) {
@@ -90,6 +108,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             vertical: false,
             style_class: "bandwidth-monitor__row-header"
         });
+        const headerInfo = new St.BoxLayout({
+            vertical: false,
+            style_class: "bandwidth-monitor__row-header-info"
+        });
+        const liveMetrics = new St.BoxLayout({
+            vertical: false,
+            style_class: "bandwidth-monitor__row-live-metrics"
+        });
         const titleLabel = new St.Label({
             style_class: "bandwidth-monitor__row-title",
             text: title
@@ -99,20 +125,22 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             text: _("planned")
         });
 
-        header.add_child(titleLabel);
-        header.add_child(stateLabel);
+        headerInfo.add_child(titleLabel);
+        headerInfo.add_child(stateLabel);
 
         const metrics = new St.BoxLayout({
             vertical: false,
             style_class: "bandwidth-monitor__metrics"
         });
-        const rxValue = this._createMetric(_("RX"), "--");
-        const txValue = this._createMetric(_("TX"), "--");
+        const rxValue = this._createMetric(_("RX"), "--", true);
+        const txValue = this._createMetric(_("TX"), "--", true);
         const totalRxValue = this._createMetric(_("Total RX"), "--");
         const totalTxValue = this._createMetric(_("Total TX"), "--");
 
-        metrics.add_child(rxValue.container);
-        metrics.add_child(txValue.container);
+        liveMetrics.add_child(rxValue.container);
+        liveMetrics.add_child(txValue.container);
+        header.add_child(headerInfo);
+        header.add_child(liveMetrics);
         metrics.add_child(totalRxValue.container);
         metrics.add_child(totalTxValue.container);
 
@@ -131,6 +159,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             container,
             titleLabel,
             stateLabel,
+            header,
+            headerInfo,
+            liveMetrics,
             metrics,
             sparkline,
             footer,
@@ -141,17 +172,23 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         };
     }
 
-    _createMetric(label, value) {
+    _createMetric(label, value, compact = false) {
         const container = new St.BoxLayout({
-            vertical: true,
-            style_class: "bandwidth-monitor__metric"
+            vertical: !compact,
+            style_class: compact
+                ? "bandwidth-monitor__metric bandwidth-monitor__metric--compact"
+                : "bandwidth-monitor__metric"
         });
         const labelWidget = new St.Label({
-            style_class: "bandwidth-monitor__metric-label",
+            style_class: compact
+                ? "bandwidth-monitor__metric-label bandwidth-monitor__metric-label--compact"
+                : "bandwidth-monitor__metric-label",
             text: label
         });
         const valueWidget = new St.Label({
-            style_class: "bandwidth-monitor__metric-value",
+            style_class: compact
+                ? "bandwidth-monitor__metric-value bandwidth-monitor__metric-value--compact"
+                : "bandwidth-monitor__metric-value",
             text: value
         });
 
@@ -320,20 +357,39 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const rowPadding = Math.max(8, spacing);
 
         widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: rgba(255, 255, 255, 0.06);`;
+        widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
+        widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
+        widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
         widget.metrics.style = `spacing: ${Math.max(8, spacing)}px;`;
         widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
         widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.68);`;
         widget.footer.style = `font-size: ${0.88 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+        widget.header.x_align = Clutter.ActorAlign.CENTER;
+        widget.headerInfo.x_align = Clutter.ActorAlign.CENTER;
+        widget.liveMetrics.x_align = Clutter.ActorAlign.CENTER;
+        widget.header.y_align = Clutter.ActorAlign.CENTER;
+        widget.headerInfo.y_align = Clutter.ActorAlign.CENTER;
+        widget.liveMetrics.y_align = Clutter.ActorAlign.CENTER;
         widget.titleLabel.x_align = alignment;
         widget.stateLabel.x_align = alignment;
+        widget.titleLabel.y_align = Clutter.ActorAlign.CENTER;
+        widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
         widget.sparkline.actor.style = `height: ${Math.max(32, Math.round(34 * fontScale))}px;`;
         widget.sparkline.actor.visible = this.showSparklines;
 
         [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {
             metric.labelWidget.visible = this.showLabels;
-            metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
-            metric.valueWidget.style = `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
+            metric.container.y_align = Clutter.ActorAlign.CENTER;
+            metric.labelWidget.y_align = Clutter.ActorAlign.CENTER;
+            metric.valueWidget.y_align = Clutter.ActorAlign.CENTER;
+            const isCompact = metric.container.has_style_class_name("bandwidth-monitor__metric--compact");
+            metric.labelWidget.style = isCompact
+                ? `font-size: ${0.8 * fontScale}em; color: rgba(255, 255, 255, 0.72);`
+                : `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+            metric.valueWidget.style = isCompact
+                ? `font-size: ${1.0 * fontScale}em; font-weight: bold;`
+                : `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
         });
 
         widget.totalRxValue.container.visible = this.showTotals;

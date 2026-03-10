@@ -54,7 +54,7 @@ For local development on Cinnamon, the repository includes a helper script:
 ./scripts/install-local-desklet.sh
 ```
 
-This creates or updates a symlink in `~/.local/share/cinnamon/desklets/` so the current repository can be loaded as a local desklet during development.
+This creates or updates a real desklet copy in `~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T` using the current repository files.
 
 For packaged installation, extract the packaged UUID directory into `~/.local/share/cinnamon/desklets/` and then add or reload the desklet in Cinnamon.
 

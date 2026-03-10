@@ -45,6 +45,8 @@ For local Cinnamon testing during development:
 ./scripts/install-local-desklet.sh
 ```
 
+This installs a real local desklet copy into `~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T`.
+
 For release packaging:
 
 ```bash

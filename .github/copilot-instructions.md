@@ -17,6 +17,7 @@ This repository is a native Cinnamon/GJS desklet project for monitoring network 
 - Keep the data-collection, rate-calculation, history-buffer, and rendering concerns separated even if the first slice is small.
 - Use a soft file-size guideline rather than a hard cap: target `<=300` lines for most focused modules, allow orchestration-heavy files such as `desklet.js` to grow to roughly `400-500` lines if still cohesive, and split based on responsibility rather than raw line count.
 - Optimise for correctness and low overhead over cleverness.
+- For local Cinnamon installation, prefer a real copied desklet deployment into `~/.local/share/cinnamon/desklets/<uuid>` via `./scripts/install-local-desklet.sh`; do not rely on symlink-based installs.
 
 ## Expected Delivery Style
 

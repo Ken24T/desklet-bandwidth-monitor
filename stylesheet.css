@@ -28,6 +28,14 @@
     spacing: 12px;
 }
 
+.bandwidth-monitor__row-header-info {
+    spacing: 12px;
+}
+
+.bandwidth-monitor__row-live-metrics {
+    spacing: 8px;
+}
+
 .bandwidth-monitor__row-title {
     font-weight: bold;
 }
@@ -48,6 +56,11 @@
     background-color: rgba(255, 255, 255, 0.04);
 }
 
+.bandwidth-monitor__metric--compact {
+    padding: 6px 10px;
+    spacing: 6px;
+}
+
 .bandwidth-monitor__metric-label {
     color: rgba(255, 255, 255, 0.72);
     font-size: 0.85em;
@@ -56,6 +69,11 @@
 .bandwidth-monitor__metric-value {
     font-size: 1.05em;
     font-weight: bold;
+}
+
+.bandwidth-monitor__metric-label--compact,
+.bandwidth-monitor__metric-value--compact {
+    padding: 0;
 }
 
 .bandwidth-monitor__row-footer {
