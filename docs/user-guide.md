@@ -75,6 +75,7 @@ Current visible behaviour:
 
 - the desklet can display a header
 - the desklet exposes a Cinnamon settings panel for sampling, interface selection, and layout options
+- the settings panel is grouped into functional sections for general behaviour, interfaces, layout, and charts
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based

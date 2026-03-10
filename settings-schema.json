@@ -1,12 +1,36 @@
 {
+  "general-header": {
+    "type": "header",
+    "description": "General"
+  },
   "sample-seconds": {
     "type": "spinbutton",
     "default": 1,
     "min": 1,
     "max": 10,
+    "step": 1,
     "units": "s",
     "description": "Sampling interval",
     "tooltip": "How often the desklet should sample network counters."
+  },
+  "rate-unit-mode": {
+    "type": "combobox",
+    "default": "auto-bytes",
+    "description": "Rate unit mode",
+    "options": {
+      "Automatic bytes per second": "auto-bytes",
+      "Automatic bits per second": "auto-bits"
+    }
+  },
+  "show-header": {
+    "type": "switch",
+    "default": true,
+    "description": "Show desklet header",
+    "tooltip": "Display the desklet title above the content."
+  },
+  "interfaces-header": {
+    "type": "header",
+    "description": "Interfaces"
   },
   "selection-mode": {
     "type": "combobox",
@@ -41,14 +65,9 @@
     "description": "Show Group All Interfaces row",
     "tooltip": "Display the aggregate row for the currently visible interfaces."
   },
-  "rate-unit-mode": {
-    "type": "combobox",
-    "default": "auto-bytes",
-    "description": "Rate unit mode",
-    "options": {
-      "Automatic bytes per second": "auto-bytes",
-      "Automatic bits per second": "auto-bits"
-    }
+  "layout-header": {
+    "type": "header",
+    "description": "Layout and Display"
   },
   "show-labels": {
     "type": "switch",
@@ -98,6 +117,10 @@
     "description": "Show discovered interface list",
     "tooltip": "Display the discovered interfaces and their current state below the desklet rows."
   },
+  "charts-header": {
+    "type": "header",
+    "description": "Charts"
+  },
   "show-sparklines": {
     "type": "switch",
     "default": true,
@@ -123,11 +146,5 @@
       "Moving average": "moving-average",
       "Exponential": "exponential"
     }
-  },
-  "show-header": {
-    "type": "switch",
-    "default": true,
-    "description": "Show desklet header",
-    "tooltip": "Display the desklet title above the content."
   }
 }

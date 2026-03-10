@@ -111,7 +111,7 @@ var SessionMonitor = class {
         let rxRate = 0;
         let txRate = 0;
         let hasRate = false;
-        let footer = `Sampling counters from /sys/class/net/${interfaceInfo.name}/statistics/.`;
+        let footer = "";
         let spikeSuppressed = false;
 
         if (previous && nowUs > previous.timeUs) {
@@ -213,7 +213,7 @@ var SessionMonitor = class {
             txRate: 0,
             totalRxBytes: 0,
             totalTxBytes: 0,
-            footer: "Combined live rates and session totals for the currently visible interfaces."
+            footer: ""
         });
 
         const history = this._appendAggregateHistory(aggregate.rxRate, aggregate.txRate, historyLength, smoothingMode);

@@ -124,21 +124,26 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         headerInfo.add_child(titleLabel);
         headerInfo.add_child(stateLabel);
 
-        const metrics = new St.BoxLayout({
+        const totalsRow = new St.BoxLayout({
             vertical: false,
-            style_class: "bandwidth-monitor__metrics"
+            style_class: "bandwidth-monitor__totals"
+        });
+        const totalsTitleLabel = new St.Label({
+            style_class: "bandwidth-monitor__totals-title",
+            text: _("Totals:")
         });
         const rxValue = this._createMetric(_("RX"), "--", true);
         const txValue = this._createMetric(_("TX"), "--", true);
-        const totalRxValue = this._createMetric(_("Total RX"), "--");
-        const totalTxValue = this._createMetric(_("Total TX"), "--");
+        const totalRxValue = this._createInlineMetric(_("RX"), "--");
+        const totalTxValue = this._createInlineMetric(_("TX"), "--");
 
         liveMetrics.add_child(rxValue.container);
         liveMetrics.add_child(txValue.container);
         header.add_child(headerInfo);
         header.add_child(liveMetrics);
-        metrics.add_child(totalRxValue.container);
-        metrics.add_child(totalTxValue.container);
+        totalsRow.add_child(totalsTitleLabel);
+        totalsRow.add_child(totalRxValue.container);
+        totalsRow.add_child(totalTxValue.container);
 
         const footer = new St.Label({
             style_class: "bandwidth-monitor__row-footer",
@@ -149,7 +154,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const sparkline = new Sparkline.SparklineView();
 
         container.add_child(header);
-        container.add_child(metrics);
+        container.add_child(totalsRow);
         container.add_child(sparkline.actor);
         container.add_child(footer);
 
@@ -160,7 +165,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             header,
             headerInfo,
             liveMetrics,
-            metrics,
+            totalsRow,
+            totalsTitleLabel,
             sparkline,
             footer,
             rxValue,
@@ -187,6 +193,30 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             style_class: compact
                 ? "bandwidth-monitor__metric-value bandwidth-monitor__metric-value--compact"
                 : "bandwidth-monitor__metric-value",
+            text: value
+        });
+
+        container.add_child(labelWidget);
+        container.add_child(valueWidget);
+
+        return {
+            container,
+            labelWidget,
+            valueWidget
+        };
+    }
+
+    _createInlineMetric(label, value) {
+        const container = new St.BoxLayout({
+            vertical: false,
+            style_class: "bandwidth-monitor__inline-metric"
+        });
+        const labelWidget = new St.Label({
+            style_class: "bandwidth-monitor__inline-metric-label",
+            text: label
+        });
+        const valueWidget = new St.Label({
+            style_class: "bandwidth-monitor__inline-metric-value",
             text: value
         });
 
@@ -290,6 +320,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(row.totalRxBytes));
             widget.totalTxValue.valueWidget.set_text(this._formatBytes(row.totalTxBytes));
             widget.footer.set_text(row.footer);
+            widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
                 visible: this.showSparklines,
                 height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
@@ -309,6 +340,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(aggregate.totalRxBytes));
             widget.totalTxValue.valueWidget.set_text(this._formatBytes(aggregate.totalTxBytes));
             widget.footer.set_text(aggregate.footer);
+            widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
                 visible: this.showSparklines,
                 height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
@@ -345,40 +377,50 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
-        widget.metrics.style = `spacing: ${Math.max(8, spacing)}px;`;
+        widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
         widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
         widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.68);`;
+        widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.72); font-weight: bold;`;
         widget.footer.style = `font-size: ${0.88 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
         widget.header.x_align = Clutter.ActorAlign.START;
         widget.headerInfo.x_align = Clutter.ActorAlign.START;
         widget.liveMetrics.x_align = Clutter.ActorAlign.START;
+        widget.totalsRow.x_align = Clutter.ActorAlign.START;
         widget.header.y_align = Clutter.ActorAlign.CENTER;
         widget.headerInfo.y_align = Clutter.ActorAlign.CENTER;
         widget.liveMetrics.y_align = Clutter.ActorAlign.CENTER;
+        widget.totalsRow.y_align = Clutter.ActorAlign.CENTER;
         widget.titleLabel.x_align = alignment;
         widget.stateLabel.x_align = alignment;
         widget.titleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
+        widget.totalsTitleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
         widget.sparkline.actor.style = `height: ${Math.max(32, Math.round(34 * fontScale))}px;`;
         widget.sparkline.actor.visible = this.showSparklines;
 
         [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {
-            metric.labelWidget.visible = this.showLabels;
             metric.container.y_align = Clutter.ActorAlign.CENTER;
             metric.labelWidget.y_align = Clutter.ActorAlign.CENTER;
             metric.valueWidget.y_align = Clutter.ActorAlign.CENTER;
             const isCompact = metric.container.has_style_class_name("bandwidth-monitor__metric--compact");
-            metric.labelWidget.style = isCompact
-                ? `font-size: ${0.8 * fontScale}em; color: rgba(255, 255, 255, 0.72);`
-                : `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
-            metric.valueWidget.style = isCompact
-                ? `font-size: ${1.0 * fontScale}em; font-weight: bold;`
-                : `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
+            const isInline = metric.container.has_style_class_name("bandwidth-monitor__inline-metric");
+            if (isInline) {
+                metric.labelWidget.visible = true;
+                metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+                metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
+            } else {
+                metric.labelWidget.visible = this.showLabels;
+                metric.labelWidget.style = isCompact
+                    ? `font-size: ${0.8 * fontScale}em; color: rgba(255, 255, 255, 0.72);`
+                    : `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+                metric.valueWidget.style = isCompact
+                    ? `font-size: ${1.0 * fontScale}em; font-weight: bold;`
+                    : `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
+            }
         });
 
-        widget.totalRxValue.container.visible = this.showTotals;
-        widget.totalTxValue.container.visible = this.showTotals;
+        widget.totalsRow.visible = this.showTotals;
     }
 
     _hideAllRows() {
