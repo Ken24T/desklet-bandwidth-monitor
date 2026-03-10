@@ -75,6 +75,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._statusLabel = new St.Label({
             style_class: "bandwidth-monitor__status"
         });
+        this._statusLabel.clutter_text.line_wrap = true;
+        this._statusLabel.clutter_text.ellipsize = 0;
 
         this._panelBox = new St.BoxLayout({
             vertical: true,
@@ -84,10 +86,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._hintLabel = new St.Label({
             style_class: "bandwidth-monitor__hint"
         });
+        this._hintLabel.clutter_text.line_wrap = true;
+        this._hintLabel.clutter_text.ellipsize = 0;
 
         this._inventoryLabel = new St.Label({
             style_class: "bandwidth-monitor__inventory"
         });
+        this._inventoryLabel.clutter_text.line_wrap = true;
+        this._inventoryLabel.clutter_text.ellipsize = 0;
 
         this._contentBox.add_child(this._titleLabel);
         this._contentBox.add_child(this._statusLabel);
@@ -146,8 +152,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         const footer = new St.Label({
             style_class: "bandwidth-monitor__row-footer",
-            text: _("Waiting for live sampling in the next milestone.")
+            text: _("Waiting for the first stable sample.")
         });
+        footer.clutter_text.line_wrap = true;
+        footer.clutter_text.ellipsize = 0;
         const sparkline = new Sparkline.SparklineView();
 
         container.add_child(header);
@@ -274,8 +282,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _renderUnavailable(reason) {
         const sampleLabel = this._getSampleInterval();
 
-        this._statusLabel.set_text(`Waiting for a usable interface at ${sampleLabel}s sampling.`);
-        this._hintLabel.set_text("Multi-interface monitoring and session totals are active in this phase.");
+        this._statusLabel.set_text(`Waiting for a usable interface. Refresh: ${sampleLabel}s.`);
+        this._hintLabel.set_text("Live rates, totals, and sparklines will appear once an interface starts reporting stable samples.");
         this._hideAllRows();
         this._syncInterfaceInventory(reason);
     }
@@ -284,8 +292,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const sampleLabel = this._getSampleInterval();
         const selectedLabel = snapshot.selectedInterface ? snapshot.selectedInterface.label : "auto";
 
-        this._statusLabel.set_text(`Monitoring ${snapshot.rows.length} interface rows every ${sampleLabel}s. Primary selection: ${selectedLabel}.`);
-        this._hintLabel.set_text("Multi-interface monitoring and session totals are active in this phase.");
+        this._statusLabel.set_text(`${snapshot.rows.length} rows • ${sampleLabel}s refresh • Primary: ${selectedLabel}`);
+        this._hintLabel.set_text("Live rates update continuously. Totals track this session for each visible row.");
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
         this._syncInterfaceInventory();
     }
