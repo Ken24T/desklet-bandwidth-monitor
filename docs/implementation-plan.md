@@ -227,13 +227,113 @@ Done criteria:
 - Release workflow reflects actual repository commands.
 - Core documentation matches the implementation.
 
+## Phase 13: Theme Modes and Colouring
+
+Suggested branch: `phase-13-theme-colouring`
+
+Purpose: add user-facing theme controls without destabilising the now-settled monitoring and layout model.
+
+Scope:
+
+- Theme mode selection with opinionated presets first
+- Light and dark preset palettes that remain readable against a wide range of wallpapers
+- A custom theme mode that exposes a restrained set of colour controls
+- Runtime application of theme settings to the desklet shell, rows, text, and charts
+- Documentation updates for the new theme behaviours and limits
+
+Recommended constraints:
+
+- Do not start with full "theme everything" flexibility
+- Prefer a small set of high-value colours over dozens of low-signal controls
+- Keep contrast and readability ahead of novelty
+- Preserve the current compact, glanceable layout while adding theme flexibility
+
+Suggested vertical slices:
+
+1. Theme foundation
+
+- Add theme mode setting: `Dark`, `Light`, `Custom`
+- Centralise runtime colour/style resolution so the desklet can swap palettes coherently
+- Keep existing appearance as the default dark preset baseline
+
+2. Curated light and dark presets
+
+- Ship one deliberate dark preset and one deliberate light preset
+- Verify row contrast, metric readability, and sparkline visibility in both modes
+- Ensure totals, labels, and chart backgrounds remain legible without manual tweaking
+
+3. Custom colour controls
+
+- Expose a restrained initial set of colour pickers:
+  desklet background, row background, primary text, secondary text, RX accent, TX accent
+- Reveal these controls only when `Custom` theme mode is selected
+- Keep alpha/transparency support limited to settings that materially improve wallpaper integration
+
+4. Theme polish and safety
+
+- Add validation of readable defaults and safe fallbacks when colours are extreme
+- Review light-mode spacing, borders, and muted text treatment
+- Keep docs and screenshots aligned with the actual theme model
+
+Slice outcome:
+
+- Users can choose a clean light or dark preset quickly, or opt into a constrained custom theme mode for personalisation.
+
+Done criteria:
+
+- Theme mode changes apply cleanly at runtime.
+- Light and dark presets both feel intentional rather than inverted afterthoughts.
+- Custom colour controls remain understandable and do not overwhelm the settings panel.
+- Charts, totals, labels, and row backgrounds stay legible across supported theme modes.
+
+## Theme Branching Workflow
+
+Current local state after `0.5.0`:
+
+- local `main` contains the shipped `0.5.0` desklet
+- the workspace is currently on `phase-13-follow-up`
+
+Recommended branch handling before implementation starts:
+
+1. Treat `phase-13-follow-up` as a placeholder only.
+2. Start the actual theme work on a theme-specific branch: `phase-13-theme-colouring`.
+3. Create that branch from updated local `main`, not from stale exploratory work.
+
+Recommended internal branch sequence for the theme phase:
+
+1. `phase-13-theme-colouring`
+	Use this as the parent phase branch and integration branch for the whole theming milestone.
+
+2. Optional sub-branch: `phase-13-theme-foundation`
+	Use this if palette resolution or runtime styling extraction becomes substantial enough to merit isolation.
+
+3. Optional sub-branch: `phase-13-theme-presets`
+	Use this for the curated `Dark` and `Light` mode work once the foundation is stable.
+
+4. Optional sub-branch: `phase-13-theme-custom-colours`
+	Use this for the custom colour pickers and visibility/dependency logic in the settings panel.
+
+5. Optional sub-branch: `phase-13-theme-polish`
+	Use this for contrast review, readability corrections, and final documentation updates.
+
+Recommended workflow:
+
+- create `phase-13-theme-colouring` from local `main`
+- use short-lived sub-branches only if a slice becomes large enough to justify isolation
+- merge any sub-branch back into `phase-13-theme-colouring` first
+- validate the completed phase branch against the real repo commands
+- SHIP the completed phase branch
+- merge the shipped phase branch into local `main`
+- create the next branch only after the local merge completes
+- ask explicitly before pushing `main` and tags to the remote
+
 ## Immediate Next Branches
 
-The recommended near-term branch sequence is:
+The recommended next branch sequence from the current shipped state is:
 
-1. `phase-0-bootstrap`
-2. `phase-1-static-shell`
-3. `phase-2-single-interface-live-text`
+1. retire or ignore the placeholder `phase-13-follow-up` branch
+2. create `phase-13-theme-colouring` from local `main`
+3. optionally use the theme sub-branches above if the work becomes substantial
 
 Recommended working model:
 
