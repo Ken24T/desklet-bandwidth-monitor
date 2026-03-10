@@ -21,6 +21,7 @@ What exists today:
 - more defensive handling for disappearing interfaces, counter resets, and suspicious spikes
 - package creation for release artifacts
 - a working desklet settings panel for sampling, per-interface row controls, layout, and sparkline options
+- theme mode presets with an initial custom colour mode for core desklet surfaces and chart accents
 
 What does not exist yet:
 
@@ -76,6 +77,8 @@ Current visible behaviour:
 - the desklet can display a header
 - the desklet exposes a Cinnamon settings panel for sampling, interface selection, and layout options
 - the settings panel is grouped into functional sections for general behaviour, interfaces, layout, and charts
+- the settings panel now includes theme controls for `Dark`, `Light`, and `Custom` modes
+- in `Custom` mode, the settings panel can apply curated palettes and restore the default dark or light custom colour baselines
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
 - individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
@@ -89,6 +92,9 @@ Current visible behaviour:
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - labels, totals, alignment, spacing, and font scale can be adjusted from settings
+- the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
+- custom theme colours can be recovered quickly by applying a curated palette or resetting back to the dark or light baseline colour sets
+- the desklet uses its own themed shell rather than Cinnamon's default outer desklet decoration
 - sparkline charts can be shown or hidden
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
@@ -111,7 +117,7 @@ Current limitations are expected for this early phase:
 
 - interface ordering is still basic
 - per-interface nicknames, colours, and richer layout controls are not implemented yet
-- chart styling is still simple rather than fully themeable
+- theme controls are intentionally restrained rather than fully granular
 
 ## Document Maintenance Rule
 

@@ -10,6 +10,9 @@ var SparklineView = class {
         this._height = 42;
         this._scaleMax = 1;
         this._visible = true;
+        this._backgroundColor = [1, 1, 1, 0.05];
+        this._rxColor = [0.45, 0.78, 1.0, 0.95];
+        this._txColor = [1.0, 0.78, 0.4, 0.95];
     }
 
     update(rxHistory, txHistory, options = {}) {
@@ -17,6 +20,9 @@ var SparklineView = class {
         this._txHistory = txHistory || [];
         this._height = options.height || 42;
         this._visible = options.visible !== false;
+        this._backgroundColor = options.backgroundColor || [1, 1, 1, 0.05];
+        this._rxColor = options.rxColor || [0.45, 0.78, 1.0, 0.95];
+        this._txColor = options.txColor || [1.0, 0.78, 0.4, 0.95];
         const currentPeak = Math.max(1, ...this._rxHistory, ...this._txHistory);
         const targetScale = currentPeak * 1.15;
 
@@ -47,13 +53,18 @@ var SparklineView = class {
             return;
         }
 
-        cr.setSourceRGBA(1, 1, 1, 0.05);
+        cr.setSourceRGBA(
+            this._backgroundColor[0],
+            this._backgroundColor[1],
+            this._backgroundColor[2],
+            this._backgroundColor[3]
+        );
         cr.rectangle(0, 0, width, height);
         cr.fill();
 
         const maxValue = Math.max(1, this._scaleMax);
-        this._drawSeries(cr, width, height, this._rxHistory, maxValue, [0.45, 0.78, 1.0, 0.95], []);
-        this._drawSeries(cr, width, height, this._txHistory, maxValue, [1.0, 0.78, 0.4, 0.95], [4, 3]);
+        this._drawSeries(cr, width, height, this._rxHistory, maxValue, this._rxColor, []);
+        this._drawSeries(cr, width, height, this._txHistory, maxValue, this._txColor, [4, 3]);
     }
 
     _drawSeries(cr, width, height, series, maxValue, color, dash) {

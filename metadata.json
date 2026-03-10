@@ -3,7 +3,7 @@
   "name": "Bandwidth Monitor",
   "description": "A Cinnamon desklet for monitoring network bandwidth activity.",
   "icon": "utilities-system-monitor",
-  "prevent-decorations": false,
+  "prevent-decorations": true,
   "max-instances": "10",
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

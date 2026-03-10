@@ -48,6 +48,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("reset-interface-request", "resetInterfaceRequest", this._onResetInterfaceRequested.bind(this));
+        this.settings.bind("theme-mode", "themeMode", this._syncDisplaySettings.bind(this));
+        this.settings.bind("manual-theme-action", "manualThemeAction", this._onManualThemeActionChanged.bind(this));
+        this.settings.bind("desklet-background-color", "deskletBackgroundColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("row-background-color", "rowBackgroundColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("primary-text-color", "primaryTextColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("secondary-text-color", "secondaryTextColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("rx-accent-color", "rxAccentColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("tx-accent-color", "txAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
@@ -234,10 +242,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const fontScale = this.fontScale || 1;
         const spacing = this.rowSpacing || 10;
         const alignment = this._resolveAlignment(this.contentAlignment || "left");
+        this._themePalette = this._getThemePalette();
 
-        this._contentBox.style = `spacing: ${spacing}px;`;
+        this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
         this._panelBox.style = `spacing: ${spacing}px;`;
-        this._titleLabel.style = `font-size: ${1.15 * fontScale}em;`;
+        this._titleLabel.style = `font-size: ${1.15 * fontScale}em; color: ${this._themePalette.primaryText};`;
         this._titleLabel.x_align = alignment;
 
         Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
@@ -309,7 +318,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
                 visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1)))
+                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                backgroundColor: this._themePalette.chartBackgroundArray,
+                rxColor: this._themePalette.rxAccentArray,
+                txColor: this._themePalette.txAccentArray
             });
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
 
@@ -333,7 +345,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
                 visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1)))
+                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                backgroundColor: this._themePalette.chartBackgroundArray,
+                rxColor: this._themePalette.rxAccentArray,
+                txColor: this._themePalette.txAccentArray
             });
             widget.container.visible = true;
         }
@@ -362,16 +377,17 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _applyRowDisplaySettings(widget, fontScale, spacing, alignment) {
         const rowPadding = Math.max(8, spacing);
+        const palette = this._themePalette || this._getThemePalette();
 
-        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: rgba(255, 255, 255, 0.06);`;
+        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${palette.rowBackground};`;
         widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
         widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
-        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
-        widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.68);`;
-        widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: rgba(255, 255, 255, 0.72); font-weight: bold;`;
-        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${palette.primaryText};`;
+        widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText};`;
+        widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
+        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${palette.secondaryText};`;
         widget.header.x_align = Clutter.ActorAlign.START;
         widget.headerInfo.x_align = Clutter.ActorAlign.START;
         widget.liveMetrics.x_align = Clutter.ActorAlign.START;
@@ -389,24 +405,30 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.sparkline.actor.style = `height: ${Math.max(40, Math.round(43 * fontScale))}px;`;
         widget.sparkline.actor.visible = this.showSparklines;
 
-        [widget.rxValue, widget.txValue, widget.totalRxValue, widget.totalTxValue].forEach(metric => {
+        [
+            { metric: widget.rxValue, accent: palette.rxAccent },
+            { metric: widget.txValue, accent: palette.txAccent },
+            { metric: widget.totalRxValue, accent: palette.rxAccent },
+            { metric: widget.totalTxValue, accent: palette.txAccent }
+        ].forEach(({ metric, accent }) => {
             metric.container.y_align = Clutter.ActorAlign.CENTER;
             metric.labelWidget.y_align = Clutter.ActorAlign.CENTER;
             metric.valueWidget.y_align = Clutter.ActorAlign.CENTER;
             const isCompact = metric.container.has_style_class_name("bandwidth-monitor__metric--compact");
             const isInline = metric.container.has_style_class_name("bandwidth-monitor__inline-metric");
+            metric.container.style = isInline ? "" : `background-color: ${palette.metricBackground};`;
             if (isInline) {
                 metric.labelWidget.visible = true;
-                metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
-                metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold;`;
+                metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
+                metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`;
             } else {
                 metric.labelWidget.visible = this.showLabels;
                 metric.labelWidget.style = isCompact
-                    ? `font-size: ${0.8 * fontScale}em; color: rgba(255, 255, 255, 0.72);`
-                    : `font-size: ${0.85 * fontScale}em; color: rgba(255, 255, 255, 0.72);`;
+                    ? `font-size: ${0.8 * fontScale}em; color: ${palette.secondaryText};`
+                    : `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
                 metric.valueWidget.style = isCompact
-                    ? `font-size: ${1.0 * fontScale}em; font-weight: bold;`
-                    : `font-size: ${1.05 * fontScale}em; font-weight: bold;`;
+                    ? `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`
+                    : `font-size: ${1.05 * fontScale}em; font-weight: bold; color: ${accent};`;
             }
         });
 
@@ -433,6 +455,28 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._monitor.resetInterface(interfaceName);
         this.settings.setValue("reset-interface-request", "");
         this._tickSample();
+    }
+
+    _onManualThemeActionChanged() {
+        const action = (this.manualThemeAction || "none").trim();
+        if (!action || action === "none") {
+            return;
+        }
+
+        const palette = this._getManualThemePreset(action);
+        if (!palette) {
+            this.settings.setValue("manual-theme-action", "none");
+            return;
+        }
+
+        this.settings.setValue("desklet-background-color", palette.deskletBackgroundColor);
+        this.settings.setValue("row-background-color", palette.rowBackgroundColor);
+        this.settings.setValue("primary-text-color", palette.primaryTextColor);
+        this.settings.setValue("secondary-text-color", palette.secondaryTextColor);
+        this.settings.setValue("rx-accent-color", palette.rxAccentColor);
+        this.settings.setValue("tx-accent-color", palette.txAccentColor);
+        this.settings.setValue("manual-theme-action", "none");
+        this._syncDisplaySettings();
     }
 
     _resolveShownInterfaceNames(rows) {
@@ -475,6 +519,115 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         }
 
         return state || "";
+    }
+
+    _getThemePalette() {
+        const themeMode = this.themeMode || "dark";
+
+        if (themeMode === "light") {
+            return this._buildPresetPalette({
+                deskletBackground: "rgba(244, 247, 251, 0.96)",
+                rowBackground: "rgba(24, 35, 52, 0.09)",
+                metricBackground: "rgba(24, 35, 52, 0.07)",
+                chartBackground: "rgba(24, 35, 52, 0.07)",
+                primaryText: "rgb(37, 45, 58)",
+                secondaryText: "rgba(68, 79, 95, 0.82)",
+                rxAccent: "rgb(36, 122, 206)",
+                txAccent: "rgb(224, 140, 48)"
+            });
+        }
+
+        if (themeMode === "manual" || themeMode === "custom") {
+            return this._buildPresetPalette({
+                deskletBackground: this._colourToCss(this._resolveColor(this.deskletBackgroundColor, "rgb(24, 28, 36)"), 0.94),
+                rowBackground: this._colourToCss(this._resolveColor(this.rowBackgroundColor, "rgb(255, 255, 255)"), 0.18),
+                metricBackground: this._colourToCss(this._resolveColor(this.rowBackgroundColor, "rgb(255, 255, 255)"), 0.12),
+                chartBackground: this._colourToCss(this._resolveColor(this.rowBackgroundColor, "rgb(255, 255, 255)"), 0.10),
+                primaryText: this._colourToCss(this._resolveColor(this.primaryTextColor, "rgb(255, 255, 255)"), 1),
+                secondaryText: this._colourToCss(this._resolveColor(this.secondaryTextColor, "rgb(214, 220, 229)"), 0.92),
+                rxAccent: this._colourToCss(this._resolveColor(this.rxAccentColor, "rgb(115, 198, 255)"), 1),
+                txAccent: this._colourToCss(this._resolveColor(this.txAccentColor, "rgb(255, 191, 87)"), 1)
+            });
+        }
+
+        return this._buildPresetPalette({
+            deskletBackground: "rgba(22, 26, 34, 0.94)",
+            rowBackground: "rgba(255, 255, 255, 0.06)",
+            metricBackground: "rgba(255, 255, 255, 0.05)",
+            chartBackground: "rgba(255, 255, 255, 0.05)",
+            primaryText: "rgb(255, 255, 255)",
+            secondaryText: "rgba(214, 220, 229, 0.82)",
+            rxAccent: "rgb(115, 198, 255)",
+            txAccent: "rgb(255, 191, 87)"
+        });
+    }
+
+    _getManualThemePreset(action) {
+        const presets = {
+            "reset-dark": {
+                deskletBackgroundColor: "rgb(24, 28, 36)",
+                rowBackgroundColor: "rgb(255, 255, 255)",
+                primaryTextColor: "rgb(255, 255, 255)",
+                secondaryTextColor: "rgb(214, 220, 229)",
+                rxAccentColor: "rgb(115, 198, 255)",
+                txAccentColor: "rgb(255, 191, 87)"
+            },
+            "reset-light": {
+                deskletBackgroundColor: "rgb(244, 247, 251)",
+                rowBackgroundColor: "rgb(24, 35, 52)",
+                primaryTextColor: "rgb(37, 45, 58)",
+                secondaryTextColor: "rgb(68, 79, 95)",
+                rxAccentColor: "rgb(36, 122, 206)",
+                txAccentColor: "rgb(224, 140, 48)"
+            },
+            "ocean-blue": {
+                deskletBackgroundColor: "rgb(18, 44, 77)",
+                rowBackgroundColor: "rgb(118, 179, 255)",
+                primaryTextColor: "rgb(241, 248, 255)",
+                secondaryTextColor: "rgb(208, 225, 241)",
+                rxAccentColor: "rgb(72, 220, 164)",
+                txAccentColor: "rgb(255, 132, 105)"
+            },
+            "forest-mist": {
+                deskletBackgroundColor: "rgb(27, 52, 46)",
+                rowBackgroundColor: "rgb(208, 232, 223)",
+                primaryTextColor: "rgb(239, 248, 244)",
+                secondaryTextColor: "rgb(196, 225, 215)",
+                rxAccentColor: "rgb(125, 221, 153)",
+                txAccentColor: "rgb(255, 181, 92)"
+            }
+        };
+
+        return presets[action] || null;
+    }
+
+    _buildPresetPalette(palette) {
+        return {
+            ...palette,
+            chartBackgroundArray: this._colourToArray(this._resolveColor(palette.chartBackground, "rgba(255, 255, 255, 0.05)")),
+            rxAccentArray: this._colourToArray(this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)"), 0.95),
+            txAccentArray: this._colourToArray(this._resolveColor(palette.txAccent, "rgb(255, 191, 87)"), 0.95)
+        };
+    }
+
+    _resolveColor(value, fallback) {
+        const [matched, colour] = Clutter.Color.from_string(value || fallback);
+        if (matched) {
+            return colour;
+        }
+
+        const [, fallbackColour] = Clutter.Color.from_string(fallback);
+        return fallbackColour;
+    }
+
+    _colourToCss(colour, alphaOverride = null) {
+        const alpha = alphaOverride === null ? (colour.alpha / 255) : alphaOverride;
+        return `rgba(${colour.red}, ${colour.green}, ${colour.blue}, ${alpha})`;
+    }
+
+    _colourToArray(colour, alphaOverride = null) {
+        const alpha = alphaOverride === null ? (colour.alpha / 255) : alphaOverride;
+        return [colour.red / 255, colour.green / 255, colour.blue / 255, alpha];
     }
 
     _resolveAlignment(value) {

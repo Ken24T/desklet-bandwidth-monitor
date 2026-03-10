@@ -28,6 +28,70 @@
     "description": "Show desklet header",
     "tooltip": "Display the desklet title above the content."
   },
+  "theme-header": {
+    "type": "header",
+    "description": "Theme"
+  },
+  "theme-mode": {
+    "type": "combobox",
+    "default": "dark",
+    "description": "Theme mode",
+    "options": {
+      "Dark": "dark",
+      "Light": "light",
+      "Custom": "manual"
+    }
+  },
+  "manual-theme-action": {
+    "type": "combobox",
+    "default": "none",
+    "description": "Apply custom palette",
+    "tooltip": "Load a curated custom palette or restore the default dark baseline colours.",
+    "dependency": "theme-mode=manual",
+    "options": {
+      "No action": "none",
+      "Reset to dark baseline": "reset-dark",
+      "Reset to light baseline": "reset-light",
+      "Ocean blue": "ocean-blue",
+      "Forest mist": "forest-mist"
+    }
+  },
+  "desklet-background-color": {
+    "type": "colorchooser",
+    "default": "rgb(24, 28, 36)",
+    "description": "Desklet background colour",
+    "dependency": "theme-mode=manual"
+  },
+  "row-background-color": {
+    "type": "colorchooser",
+    "default": "rgb(255, 255, 255)",
+    "description": "Row background colour",
+    "dependency": "theme-mode=manual"
+  },
+  "primary-text-color": {
+    "type": "colorchooser",
+    "default": "rgb(255, 255, 255)",
+    "description": "Primary text colour",
+    "dependency": "theme-mode=manual"
+  },
+  "secondary-text-color": {
+    "type": "colorchooser",
+    "default": "rgb(214, 220, 229)",
+    "description": "Secondary text colour",
+    "dependency": "theme-mode=manual"
+  },
+  "rx-accent-color": {
+    "type": "colorchooser",
+    "default": "rgb(115, 198, 255)",
+    "description": "RX accent colour",
+    "dependency": "theme-mode=manual"
+  },
+  "tx-accent-color": {
+    "type": "colorchooser",
+    "default": "rgb(255, 191, 87)",
+    "description": "TX accent colour",
+    "dependency": "theme-mode=manual"
+  },
   "interfaces-header": {
     "type": "header",
     "description": "Interfaces"
