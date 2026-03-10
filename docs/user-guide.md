@@ -79,7 +79,7 @@ Current visible behaviour:
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based
 - if the preferred interface is unavailable, the desklet falls back to automatic selection
-- tunnel interfaces can be excluded from or included in automatic selection
+- VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the visible set
@@ -90,7 +90,7 @@ Current visible behaviour:
 - history length and smoothing behaviour can be adjusted
 - the desklet waits for a stable sample after counter resets or interface return
 - obviously implausible spike samples are suppressed when recent history makes them suspect
-- top-level status and row copy is tuned for live monitoring rather than milestone placeholders
+- the layout focuses on the interface rows without extra summary text above or below the monitor cards
 
 ## Planned User Workflow
 

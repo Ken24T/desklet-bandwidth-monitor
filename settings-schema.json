@@ -27,7 +27,7 @@
     "type": "switch",
     "default": false,
     "description": "Include VPN and tunnel interfaces in auto selection",
-    "tooltip": "Allow auto-detection to select interfaces such as tun0 or wg0."
+    "tooltip": "Allow auto-detection to choose VPN interfaces such as tun0 or wg0 as the primary interface. VPN rows are shown by default unless you explicitly filter visible interfaces."
   },
   "visible-interfaces": {
     "type": "entry",

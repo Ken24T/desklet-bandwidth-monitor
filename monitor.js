@@ -74,10 +74,6 @@ var SessionMonitor = class {
                 return false;
             }
 
-            if (iface.isTunnel && !includeTunnelInterfaces) {
-                return false;
-            }
-
             return true;
         });
 
