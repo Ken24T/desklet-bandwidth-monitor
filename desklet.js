@@ -37,7 +37,6 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.metadata = metadata;
         this._sampleTimeoutId = 0;
         this._monitor = new Monitor.SessionMonitor();
-        this._lastAvailableInterfaces = [];
         this._rowsByKey = {};
 
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
@@ -45,15 +44,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("selection-mode", "selectionMode", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("preferred-interface", "preferredInterface", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("include-tunnel-interfaces", "includeTunnelInterfaces", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("include-loopback-interfaces", "includeLoopbackInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("reset-interface-request", "resetInterfaceRequest", this._onResetInterfaceRequested.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
         this.settings.bind("font-scale", "fontScale", this._syncDisplaySettings.bind(this));
         this.settings.bind("row-spacing", "rowSpacing", this._syncDisplaySettings.bind(this));
         this.settings.bind("content-alignment", "contentAlignment", this._syncDisplaySettings.bind(this));
-        this.settings.bind("show-interface-inventory", "showInterfaceInventory", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-sparklines", "showSparklines", this._syncDisplaySettings.bind(this));
         this.settings.bind("history-length", "historyLength", this._syncDisplaySettings.bind(this));
         this.settings.bind("smoothing-mode", "smoothingMode", this._syncDisplaySettings.bind(this));
@@ -81,15 +81,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             style_class: "bandwidth-monitor__panel"
         });
 
-        this._inventoryLabel = new St.Label({
-            style_class: "bandwidth-monitor__inventory"
-        });
-        this._inventoryLabel.clutter_text.line_wrap = true;
-        this._inventoryLabel.clutter_text.ellipsize = 0;
-
         this._contentBox.add_child(this._titleLabel);
         this._contentBox.add_child(this._panelBox);
-        this._contentBox.add_child(this._inventoryLabel);
 
         this.setContent(this._contentBox);
     }
@@ -245,10 +238,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._contentBox.style = `spacing: ${spacing}px;`;
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em;`;
-        this._inventoryLabel.style = `font-size: ${0.84 * fontScale}em; color: rgba(255, 255, 255, 0.64);`;
         this._titleLabel.x_align = alignment;
-        this._inventoryLabel.x_align = alignment;
-        this._inventoryLabel.visible = this.showInterfaceInventory;
 
         Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
         this._tickSample();
@@ -279,14 +269,12 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             selectionMode: this.selectionMode || "auto",
             preferredInterface: this.preferredInterface || "",
             includeTunnelInterfaces: this.includeTunnelInterfaces,
-            visibleInterfaces: this.visibleInterfaces || "",
+            includeLoopbackInterfaces: this.includeLoopbackInterfaces,
             historyLength: this.historyLength || 60,
             smoothingMode: this.smoothingMode || "moving-average"
         });
 
-        this._lastAvailableInterfaces = snapshot.availableInterfaces || [];
-
-        if (!snapshot.hasVisibleRows) {
+        if (!snapshot.hasVisibleRows && !this.showGroupAll) {
             this._renderUnavailable("No visible interfaces are currently selected.");
             return true;
         }
@@ -297,24 +285,22 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _renderUnavailable(reason) {
         this._hideAllRows();
-        this._syncInterfaceInventory(reason);
     }
 
     _renderSnapshot(snapshot) {
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
-        this._syncInterfaceInventory();
     }
 
     _syncRowWidgets(rows, aggregate) {
         const visibleKeys = [];
+        const shownInterfaceNames = this._resolveShownInterfaceNames(rows);
 
         rows.forEach(row => {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
-            visibleKeys.push(key);
 
             widget.titleLabel.set_text(row.title);
-            widget.stateLabel.set_text(row.state);
+            widget.stateLabel.set_text(this._formatDisplayState(row.state));
             widget.rxValue.valueWidget.set_text(row.hasRate ? this._formatRate(row.rxRate) : "--");
             widget.txValue.valueWidget.set_text(row.hasRate ? this._formatRate(row.txRate) : "--");
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(row.totalRxBytes));
@@ -325,7 +311,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 visible: this.showSparklines,
                 height: Math.max(32, Math.round(34 * (this.fontScale || 1)))
             });
-            widget.container.visible = true;
+            widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
+
+            if (widget.container.visible) {
+                visibleKeys.push(key);
+            }
         });
 
         if (this.showGroupAll) {
@@ -334,7 +324,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             visibleKeys.push(key);
 
             widget.titleLabel.set_text(aggregate.title);
-            widget.stateLabel.set_text(aggregate.state);
+            widget.stateLabel.set_text(this._formatDisplayState(aggregate.state));
             widget.rxValue.valueWidget.set_text(aggregate.available ? this._formatRate(aggregate.rxRate) : "--");
             widget.txValue.valueWidget.set_text(aggregate.available ? this._formatRate(aggregate.txRate) : "--");
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(aggregate.totalRxBytes));
@@ -429,23 +419,46 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
     }
 
-    _syncInterfaceInventory(reason = "") {
-        if (reason) {
-            this._inventoryLabel.set_text(reason);
+    _onResetInterfaceRequested() {
+        const request = (this.resetInterfaceRequest || "").trim();
+        if (!request) {
             return;
         }
 
-        if (this._lastAvailableInterfaces.length === 0) {
-            this._inventoryLabel.set_text("No interfaces discovered yet.");
+        const [interfaceName] = request.split(":");
+        if (!interfaceName) {
             return;
         }
 
-        const summary = this._lastAvailableInterfaces
-            .filter(iface => !iface.isNoise)
-            .map(iface => `${iface.label} [${iface.operState}]`)
-            .join(" | ");
+        this._monitor.resetInterface(interfaceName);
+        this.settings.setValue("reset-interface-request", "");
+        this._tickSample();
+    }
 
-        this._inventoryLabel.set_text(`Available interfaces: ${summary}`);
+    _resolveShownInterfaceNames(rows) {
+        const fallback = rows
+            .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
+            .map(row => row.interfaceInfo.name);
+        const rawValue = (this.visibleInterfaces || "").trim();
+
+        if (!rawValue) {
+            return new Set(fallback);
+        }
+
+        try {
+            const parsed = JSON.parse(rawValue);
+            if (parsed && Array.isArray(parsed.shown)) {
+                const allowedNames = new Set(
+                    rows
+                        .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
+                        .map(row => row.interfaceInfo.name)
+                );
+                return new Set(parsed.shown.filter(name => typeof name === "string" && allowedNames.has(name)));
+            }
+        } catch (error) {
+        }
+
+        return new Set(rawValue.split(",").map(name => name.trim()).filter(Boolean));
     }
 
     _formatRate(bytesPerSecond) {
@@ -454,6 +467,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _formatBytes(bytes) {
         return Formatting.formatDataSize(bytes);
+    }
+
+    _formatDisplayState(state) {
+        if (["auto", "up", "unknown"].includes(state)) {
+            return "";
+        }
+
+        return state || "";
     }
 
     _resolveAlignment(value) {

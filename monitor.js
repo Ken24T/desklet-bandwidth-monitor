@@ -20,6 +20,23 @@ var SessionMonitor = class {
         this._aggregateHistory = { rx: [], tx: [] };
     }
 
+    resetInterface(interfaceName) {
+        const counters = this._readCounters(interfaceName);
+
+        this._totalsByInterface[interfaceName] = { rx: 0, tx: 0 };
+
+        if (counters) {
+            this._previousByInterface[interfaceName] = {
+                rxBytes: counters.rxBytes,
+                txBytes: counters.txBytes,
+                timeUs: GLib.get_monotonic_time()
+            };
+            return;
+        }
+
+        delete this._previousByInterface[interfaceName];
+    }
+
     sample(config = {}) {
         const selection = this._catalog.resolveSelection(
             config.selectionMode || "auto",
@@ -30,8 +47,8 @@ var SessionMonitor = class {
         const visibleInterfaces = this._resolveVisibleInterfaces(
             selection.interfaces,
             selection.selected,
-            config.visibleInterfaces || "",
-            Boolean(config.includeTunnelInterfaces)
+            Boolean(config.includeTunnelInterfaces),
+            Boolean(config.includeLoopbackInterfaces)
         );
         const nowUs = GLib.get_monotonic_time();
         const historyLength = Math.max(10, config.historyLength || 60);
@@ -51,26 +68,13 @@ var SessionMonitor = class {
         };
     }
 
-    _resolveVisibleInterfaces(interfaces, selectedInterface, visibleInterfacesSetting, includeTunnelInterfaces) {
-        const requested = visibleInterfacesSetting
-            .split(",")
-            .map(name => name.trim())
-            .filter(Boolean);
-
-        if (requested.length > 0) {
-            const resolved = requested
-                .map(name => interfaces.find(iface => iface.name === name))
-                .filter(iface => Boolean(iface) && !iface.isNoise);
-
-            if (selectedInterface && !resolved.some(iface => iface.name === selectedInterface.name)) {
-                resolved.unshift(selectedInterface);
+    _resolveVisibleInterfaces(interfaces, selectedInterface, includeTunnelInterfaces, includeLoopbackInterfaces) {
+        const defaults = interfaces.filter(iface => {
+            if (iface.isNoise) {
+                return false;
             }
 
-            return resolved;
-        }
-
-        const defaults = interfaces.filter(iface => {
-            if (iface.isLoopback || iface.isNoise) {
+            if (iface.isLoopback && !includeLoopbackInterfaces) {
                 return false;
             }
 
