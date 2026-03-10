@@ -8,6 +8,7 @@ var SparklineView = class {
         this._rxHistory = [];
         this._txHistory = [];
         this._height = 42;
+        this._scaleMax = 1;
         this._visible = true;
     }
 
@@ -16,6 +17,15 @@ var SparklineView = class {
         this._txHistory = txHistory || [];
         this._height = options.height || 42;
         this._visible = options.visible !== false;
+        const currentPeak = Math.max(1, ...this._rxHistory, ...this._txHistory);
+        const targetScale = currentPeak * 1.15;
+
+        if (targetScale >= this._scaleMax) {
+            this._scaleMax = targetScale;
+        } else {
+            this._scaleMax = Math.max(targetScale, this._scaleMax * 0.92);
+        }
+
         this.actor.visible = this._visible;
         this.actor.style = `height: ${this._height}px;`;
         this.actor.queue_repaint();
@@ -41,7 +51,7 @@ var SparklineView = class {
         cr.rectangle(0, 0, width, height);
         cr.fill();
 
-        const maxValue = Math.max(1, ...this._rxHistory, ...this._txHistory);
+        const maxValue = Math.max(1, this._scaleMax);
         this._drawSeries(cr, width, height, this._rxHistory, maxValue, [0.45, 0.78, 1.0, 0.95], []);
         this._drawSeries(cr, width, height, this._txHistory, maxValue, [1.0, 0.78, 0.4, 0.95], [4, 3]);
     }
