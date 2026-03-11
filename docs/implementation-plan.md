@@ -186,24 +186,6 @@ Suggested branch: `phase-7-reliability-edge-cases`
 
 Purpose: harden the desklet against the conditions that make monitors feel untrustworthy.
 
-Scope:
-
-- Interface disappearance and reappearance
-- Counter wrap or reset handling
-- Spike suppression where sensible
-- Timer cleanup and reload correctness
-- Graceful behaviour with low or zero traffic
-
-Slice outcome:
-
-- The desklet behaves predictably in common failure and idle scenarios.
-
-Done criteria:
-
-- No obvious false spikes on reattach or reset.
-- No leaked timers after removal or reload.
-- State transitions favour correctness over visual continuity.
-
 ## Phase 8: Packaging and Release Readiness
 
 Suggested branch: `phase-8-packaging-release-readiness`
@@ -226,6 +208,213 @@ Done criteria:
 - Versioning is authoritative and documented.
 - Release workflow reflects actual repository commands.
 - Core documentation matches the implementation.
+
+## Future Slice: Adaptive Refresh Sampling
+
+Suggested branch: `phase-x-adaptive-refresh-sampling`
+
+Purpose: add an optional adaptive sampling mode that preserves the existing fixed refresh model while allowing the desklet to respond faster during sustained traffic.
+
+Principles:
+
+- Keep the current fixed refresh interval as the default and as the simplest behaviour.
+- Treat adaptive refresh as an optional mode layered on top of the existing sampling timer, not as a replacement for the current model.
+- Prefer a small number of clearly explained controls over a fully programmable threshold matrix.
+- Avoid timer thrash by using smoothed activity signals, hysteresis, and cooldown periods.
+- Keep CPU wakeups low during idle periods and favour responsiveness only when the traffic level justifies it.
+
+Why this slice fits the current implementation:
+
+- Sampling cadence is currently selected in one place in `desklet.js`, which makes interval selection a contained change.
+- Rate calculation already uses elapsed time, so changing the interval does not invalidate the basic RX/TX math.
+- Text refresh is already steadier than the sampling cadence, which reduces visible jitter when faster sampling is active.
+- The main architectural caveat is that sparkline history is sample-count based, so adaptive sampling changes the real-world time span shown by the chart unless the history model is normalised to time.
+
+Recommended scope for the first implementation:
+
+- Add a new sampling mode setting with `Fixed` and `Adaptive` options.
+- Keep the existing `sample-seconds` value as the fixed interval and as the adaptive mode's normal or idle interval.
+- Add a new minimum or fastest adaptive interval setting.
+- Add one user-facing responsiveness control, preferably expressed as a simple preset or threshold.
+- Add one user-facing cooldown control that determines how long traffic must remain calm before the desklet returns to the slower interval.
+- Keep the adaptive decision based on total visible traffic volume rather than per-interface micromanagement.
+- Reschedule the sampling timer only when the effective interval band actually changes.
+
+Explicitly out of scope for the first implementation:
+
+- Per-interface adaptive polling policies.
+- Separate adaptive controls for RX and TX.
+- A continuously variable interval that changes every sample.
+- Time-normalised sparkline history.
+- Separate adaptive redraw logic beyond the existing text refresh behaviour.
+
+Suggested settings model:
+
+1. Sampling mode
+
+- `Fixed`
+- `Adaptive`
+
+2. Base refresh rate
+
+- Reuse the existing `sample-seconds` setting.
+- In adaptive mode, this becomes the normal or idle interval.
+- Default: `1.0s`
+
+3. Fastest refresh rate
+
+- New setting: `adaptive-fast-sample-seconds`.
+- Clamp to the same lower bound already considered safe for the desklet.
+- Default: `0.5s`
+- Range: `0.25s` to `5.0s`
+
+4. Responsiveness or traffic trigger
+
+- Use the `adaptive-response-profile` setting with `Conservative`, `Balanced`, and `Responsive` presets.
+- Each preset maps to internal traffic thresholds and hold timings.
+- This keeps the UX understandable while still allowing tuning.
+- Default: `Balanced`
+
+5. Cooldown
+
+- New setting: `adaptive-cooldown-seconds`.
+- Determines how long recent traffic must stay below the downshift threshold before returning to the slower band.
+- Default: `8s`
+- Range: `2s` to `60s`
+
+Recommended runtime model:
+
+1. Compute an activity score from the most recent aggregate throughput.
+
+- Use the dominant direction from the current snapshot, based on `max(total RX, total TX)`.
+- Base it on smoothed recent traffic, not a single raw sample.
+- If aggregate mode is hidden, still use the total of visible monitored rows rather than only the primary interface so the desklet responds to the traffic it is actually showing.
+
+2. Map the activity score into a small number of cadence bands.
+
+- `Idle`: use base interval.
+- `Active`: optional middle band if needed.
+- `Busy`: use fastest interval.
+
+The first implementation can reasonably skip the middle band and use only `Idle` and `Busy` if that keeps the behaviour easier to verify.
+
+3. Apply hysteresis.
+
+- Use a higher threshold for moving into a faster band than for dropping back down.
+- This avoids rapid up/down switching around a single trigger point.
+
+4. Apply cooldown.
+
+- After traffic drops below the lower threshold, wait for the configured cooldown window before slowing the timer.
+- Allow upward shifts to happen immediately or after a very short confirmation window.
+
+5. Reschedule only on band transitions.
+
+- Do not remove and recreate the timer every sample.
+- Rebuild the timeout only when the effective interval changes.
+
+Suggested internal changes:
+
+### `settings-schema.json`
+
+- Add a sampling mode control alongside the existing refresh rate.
+- Add adaptive-only settings for fastest rate, responsiveness, and cooldown.
+- Keep labels user-facing and desktop-oriented, not network-engineering jargon.
+- Concrete keys for the first slice:
+	- `sampling-mode` with values `fixed` and `adaptive`, default `fixed`
+	- `sample-seconds`, default `1.0`
+	- `adaptive-fast-sample-seconds`, default `0.5`
+	- `adaptive-response-profile`, default `balanced`
+	- `adaptive-cooldown-seconds`, default `8`
+
+### `desklet.js`
+
+- Introduce a small adaptive sampling state object, for example:
+	- current effective interval
+	- current adaptive band
+	- recent traffic signal
+	- last upward shift time
+	- last below-threshold time
+- Split the existing interval logic so one helper returns the fixed interval and another returns the current effective interval.
+- After each sample, evaluate whether the cadence band should change.
+- If the band changes, restart the timer with the new interval.
+- Keep the current fixed text refresh behaviour unless testing shows a reason to change it.
+
+### Monitoring or snapshot layer
+
+- Prefer to derive the adaptive traffic signal from the existing snapshot data already produced for rows and aggregate totals.
+- Avoid creating a second sampling path or a second counter reader.
+- If a helper is needed, add a small utility function near the snapshot handling path rather than pushing adaptive policy into the low-level counter reader.
+
+Suggested first-pass algorithm:
+
+1. Start at the base interval.
+2. On each sample, compute `activityRate = max(totalRxRate, totalTxRate)` from the aggregate or summed visible rows.
+3. Smooth that value using a short rolling average or a simple exponential smoother.
+4. Compare the smoothed activity against preset thresholds.
+5. If the activity exceeds the upper threshold for a short sustained run of samples, switch to the fast interval.
+6. If the activity falls below the lower threshold, begin or continue a cooldown timer.
+7. Once the cooldown expires with traffic still calm, return to the base interval.
+8. If traffic collapses well below the downshift threshold, allow a shorter cooldown so the desklet can settle back to the base cadence sooner after a clearly finished burst.
+
+Cooldown refinement:
+
+- When traffic drops far below the lower threshold, allow a shortened cooldown so downshifts feel less sticky after a large transfer stops abruptly.
+- In the current branch prototype, that shortened cooldown is capped at approximately `2s`.
+
+Recommended threshold strategy:
+
+- Do not start with absolute thresholds exposed directly in bytes per second unless there is clear demand.
+- Internally define preset threshold tables for `Conservative`, `Balanced`, and `Responsive`.
+- Calibrate thresholds against realistic desktop cases such as idle sync traffic, browsing, streaming, and large file transfers.
+- First-slice preset table:
+	- `Conservative`: smoothing `0.32`, activation `3 samples`, upshift `2097152 B/s`, downshift `786432 B/s`
+	- `Balanced`: smoothing `0.42`, activation `2 samples`, upshift `1048576 B/s`, downshift `393216 B/s`
+	- `Responsive`: smoothing `0.55`, activation `2 samples`, upshift `393216 B/s`, downshift `131072 B/s`
+
+Sparkline and history caveat:
+
+- The current history buffer is sample-count based, so adaptive sampling shortens the visible time window when traffic is busy and lengthens it when traffic is quiet.
+- This is acceptable for a first version if documented as a known limitation.
+- If this proves visually confusing, a later slice can move charts toward a time-normalised history model.
+
+Validation plan:
+
+1. Functional validation
+
+- Fixed mode behaves exactly as it does today.
+- Adaptive mode remains at the base interval during idle traffic.
+- Adaptive mode shifts to the fast interval during sustained traffic.
+- Adaptive mode returns to the base interval only after the cooldown window.
+- Timer cleanup remains correct during desklet reload and removal.
+
+2. Behaviour validation
+
+- No visible interval thrash during borderline traffic.
+- Text remains readable and calm because the one-second text cache is still respected.
+- Charts remain bounded and do not cause runaway redraw behaviour.
+
+3. Edge-case validation
+
+- Interface disappearance resets adaptive state safely.
+- Counter resets do not incorrectly trigger a faster interval.
+- Very short bursts do not permanently pin the desklet to the fast cadence.
+
+Suggested delivery order:
+
+1. Add settings and fixed-versus-adaptive plumbing with no behaviour change while adaptive mode is disabled.
+2. Implement a basic two-band adaptive model using internal thresholds.
+3. Add cooldown and hysteresis.
+4. Validate against idle, bursty, and sustained transfer cases.
+5. Update `docs/user-guide.md` with clear wording about what adaptive refresh does and how it affects chart time span.
+
+Done criteria:
+
+- Fixed mode preserves current behaviour.
+- Adaptive mode is optional, understandable, and stable.
+- Adaptive interval changes are band-based rather than per-sample thrash.
+- CPU wakeups remain lower at idle than running permanently at the fastest interval.
+- User documentation explains the tradeoff that chart history spans may vary when adaptive mode is enabled.
 
 ## Phase 13: Theme Modes and Colouring
 

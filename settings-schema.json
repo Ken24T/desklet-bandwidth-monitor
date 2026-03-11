@@ -25,7 +25,7 @@
     "section-general-behaviour": {
       "type": "section",
       "title": "General",
-      "keys": ["sample-seconds", "rate-unit-mode", "show-header"]
+      "keys": ["sampling-mode", "sample-seconds", "adaptive-fast-sample-seconds", "adaptive-response-profile", "adaptive-cooldown-seconds", "rate-unit-mode", "show-header"]
     },
     "section-general-details": {
       "type": "section",
@@ -62,6 +62,16 @@
     "type": "header",
     "description": "General"
   },
+  "sampling-mode": {
+    "type": "combobox",
+    "default": "fixed",
+    "description": "Refresh mode",
+    "tooltip": "Use a fixed refresh rate, or let the desklet speed up automatically when traffic stays busy.",
+    "options": {
+      "Fixed": "fixed",
+      "Adaptive": "adaptive"
+    }
+  },
   "sample-seconds": {
     "type": "spinbutton",
     "default": 1,
@@ -69,8 +79,42 @@
     "max": 10,
     "step": 0.25,
     "units": "s",
-    "description": "Refresh rate",
-    "tooltip": "How often the desklet should sample network counters. Lower values refresh faster but increase CPU wakeups."
+    "description": "Base refresh rate",
+    "tooltip": "How often the desklet should normally sample network counters. In Adaptive mode this stays as the calm or idle refresh rate."
+  },
+  "adaptive-fast-sample-seconds": {
+    "type": "spinbutton",
+    "default": 0.5,
+    "min": 0.25,
+    "max": 5,
+    "step": 0.25,
+    "units": "s",
+    "description": "Fast refresh rate",
+    "tooltip": "The quickest rate Adaptive mode can use while sustained traffic is active.",
+    "dependency": "sampling-mode=adaptive"
+  },
+  "adaptive-response-profile": {
+    "type": "combobox",
+    "default": "balanced",
+    "description": "Adaptive response",
+    "tooltip": "Choose how quickly Adaptive mode should switch into the faster refresh rate.",
+    "dependency": "sampling-mode=adaptive",
+    "options": {
+      "Conservative": "conservative",
+      "Balanced": "balanced",
+      "Responsive": "responsive"
+    }
+  },
+  "adaptive-cooldown-seconds": {
+    "type": "spinbutton",
+    "default": 8,
+    "min": 2,
+    "max": 60,
+    "step": 1,
+    "units": "s",
+    "description": "Adaptive cooldown",
+    "tooltip": "How long traffic should stay calm before Adaptive mode returns to the base refresh rate.",
+    "dependency": "sampling-mode=adaptive"
   },
   "rate-unit-mode": {
     "type": "combobox",

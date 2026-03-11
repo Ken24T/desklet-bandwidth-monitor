@@ -14,6 +14,28 @@ const Settings = imports.ui.settings;
 const ENABLED_DESKLETS_KEY = "enabled-desklets";
 const DEFAULT_PRIMARY_MONITOR_MARGIN = 48;
 const TEXT_REFRESH_INTERVAL_US = 1000000;
+const ADAPTIVE_RAPID_DOWNSHIFT_RATIO = 0.35;
+const ADAPTIVE_RAPID_DOWNSHIFT_MAX_COOLDOWN_US = 2000000;
+const ADAPTIVE_RESPONSE_PROFILES = {
+    conservative: {
+        smoothingAlpha: 0.32,
+        activationSamples: 3,
+        upshiftBytesPerSecond: 2097152,
+        downshiftBytesPerSecond: 786432
+    },
+    balanced: {
+        smoothingAlpha: 0.42,
+        activationSamples: 2,
+        upshiftBytesPerSecond: 1048576,
+        downshiftBytesPerSecond: 393216
+    },
+    responsive: {
+        smoothingAlpha: 0.55,
+        activationSamples: 2,
+        upshiftBytesPerSecond: 393216,
+        downshiftBytesPerSecond: 131072
+    }
+};
 
 const deskletMeta = DeskletManager.deskletMeta[UUID] || null;
 const deskletDir = deskletMeta
@@ -45,12 +67,17 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._aggregateTextMetrics = null;
         this._pendingTextMetricsByInterface = {};
         this._pendingAggregateTextMetrics = null;
+        this._adaptiveSamplingState = this._createAdaptiveSamplingState();
         this._detailsPopup = null;
         this._detailsPopupSource = null;
         this._detailsPopupHideTimeoutId = 0;
 
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
+        this.settings.bind("sampling-mode", "samplingMode", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("sample-seconds", "sampleSeconds", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("adaptive-fast-sample-seconds", "adaptiveFastSampleSeconds", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("adaptive-response-profile", "adaptiveResponseProfile", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("adaptive-cooldown-seconds", "adaptiveCooldownSeconds", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("selection-mode", "selectionMode", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("preferred-interface", "preferredInterface", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("include-tunnel-interfaces", "includeTunnelInterfaces", this._onSamplingSettingsChanged.bind(this));
@@ -343,6 +370,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _onSamplingSettingsChanged() {
         this._monitor.reset();
         this._resetTextMetricsCache();
+        this._resetAdaptiveSamplingState();
         this._restartSampling();
         this._tickSample();
     }
@@ -357,13 +385,161 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             this._sampleTimeoutId = 0;
         }
 
+        this._scheduleNextSample();
+    }
+
+    _scheduleNextSample() {
+        if (this._sampleTimeoutId > 0) {
+            return;
+        }
+
         const intervalMilliseconds = this._getSampleIntervalMilliseconds();
-        this._sampleTimeoutId = Mainloop.timeout_add(intervalMilliseconds, () => this._tickSample());
+        this._sampleTimeoutId = Mainloop.timeout_add(intervalMilliseconds, () => {
+            this._sampleTimeoutId = 0;
+            this._tickSample();
+            this._scheduleNextSample();
+            return false;
+        });
     }
 
     _getSampleIntervalMilliseconds() {
-        const intervalSeconds = Math.max(0.25, Number(this.sampleSeconds) || 1);
+        const intervalSeconds = this._resolveEffectiveSampleIntervalSeconds();
         return Math.max(50, Math.round(intervalSeconds * 1000));
+    }
+
+    _resolveEffectiveSampleIntervalSeconds() {
+        const baseIntervalSeconds = this._getBaseSampleIntervalSeconds();
+
+        if ((this.samplingMode || "fixed") !== "adaptive") {
+            return baseIntervalSeconds;
+        }
+
+        const currentIntervalSeconds = Number(this._adaptiveSamplingState.currentIntervalSeconds) || baseIntervalSeconds;
+        return Math.max(0.25, Math.min(baseIntervalSeconds, currentIntervalSeconds));
+    }
+
+    _getBaseSampleIntervalSeconds() {
+        return Math.max(0.25, Number(this.sampleSeconds) || 1);
+    }
+
+    _getAdaptiveFastSampleIntervalSeconds() {
+        const baseIntervalSeconds = this._getBaseSampleIntervalSeconds();
+        const requestedFastIntervalSeconds = Math.max(0.25, Number(this.adaptiveFastSampleSeconds) || 0.5);
+        return Math.min(baseIntervalSeconds, requestedFastIntervalSeconds);
+    }
+
+    _createAdaptiveSamplingState() {
+        return {
+            currentBand: "idle",
+            currentIntervalSeconds: this._getBaseSampleIntervalSeconds(),
+            smoothedActivityBytesPerSecond: 0,
+            aboveThresholdSampleCount: 0,
+            cooldownStartUs: 0
+        };
+    }
+
+    _resetAdaptiveSamplingState() {
+        this._adaptiveSamplingState = this._createAdaptiveSamplingState();
+    }
+
+    _getAdaptiveResponseProfile() {
+        const profile = (this.adaptiveResponseProfile || "balanced").trim();
+        return ADAPTIVE_RESPONSE_PROFILES[profile] || ADAPTIVE_RESPONSE_PROFILES.balanced;
+    }
+
+    _getAdaptiveCooldownUs() {
+        const cooldownSeconds = Math.max(2, Number(this.adaptiveCooldownSeconds) || 8);
+        return Math.round(cooldownSeconds * 1000000);
+    }
+
+    _getEffectiveAdaptiveCooldownUs(profile, smoothedActivityBytesPerSecond) {
+        const configuredCooldownUs = this._getAdaptiveCooldownUs();
+        const rapidDownshiftThreshold = profile.downshiftBytesPerSecond * ADAPTIVE_RAPID_DOWNSHIFT_RATIO;
+
+        if (smoothedActivityBytesPerSecond <= rapidDownshiftThreshold) {
+            return Math.min(configuredCooldownUs, ADAPTIVE_RAPID_DOWNSHIFT_MAX_COOLDOWN_US);
+        }
+
+        return configuredCooldownUs;
+    }
+
+    _getAdaptiveActivityBytesPerSecond(snapshot) {
+        if (!snapshot || !snapshot.rows) {
+            return 0;
+        }
+
+        const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
+        const candidateRows = this.showGroupAll
+            ? snapshot.rows.filter(row => row.available && row.hasRate)
+            : snapshot.rows.filter(row => row.available && row.hasRate && row.interfaceInfo && shownInterfaceNames.has(row.interfaceInfo.name));
+
+        const totals = candidateRows.reduce((result, row) => {
+            result.rx += Math.max(0, row.rxRate);
+            result.tx += Math.max(0, row.txRate);
+            return result;
+        }, { rx: 0, tx: 0 });
+
+        return Math.max(totals.rx, totals.tx);
+    }
+
+    _updateAdaptiveSamplingState(snapshot) {
+        const baseIntervalSeconds = this._getBaseSampleIntervalSeconds();
+        const state = this._adaptiveSamplingState;
+
+        if ((this.samplingMode || "fixed") !== "adaptive") {
+            state.currentBand = "idle";
+            state.currentIntervalSeconds = baseIntervalSeconds;
+            state.smoothedActivityBytesPerSecond = 0;
+            state.aboveThresholdSampleCount = 0;
+            state.cooldownStartUs = 0;
+            return;
+        }
+
+        const fastIntervalSeconds = this._getAdaptiveFastSampleIntervalSeconds();
+        if (fastIntervalSeconds >= baseIntervalSeconds) {
+            state.currentBand = "idle";
+            state.currentIntervalSeconds = baseIntervalSeconds;
+            state.aboveThresholdSampleCount = 0;
+            state.cooldownStartUs = 0;
+            return;
+        }
+
+        const profile = this._getAdaptiveResponseProfile();
+        const activityBytesPerSecond = this._getAdaptiveActivityBytesPerSecond(snapshot);
+        state.smoothedActivityBytesPerSecond = state.smoothedActivityBytesPerSecond === 0
+            ? activityBytesPerSecond
+            : ((state.smoothedActivityBytesPerSecond * (1 - profile.smoothingAlpha)) + (activityBytesPerSecond * profile.smoothingAlpha));
+
+        const nowUs = GLib.get_monotonic_time();
+        let nextBand = state.currentBand || "idle";
+
+        if (state.smoothedActivityBytesPerSecond >= profile.upshiftBytesPerSecond) {
+            state.aboveThresholdSampleCount += 1;
+
+            if (state.aboveThresholdSampleCount >= Math.max(1, profile.activationSamples || 1)) {
+                nextBand = "busy";
+                state.cooldownStartUs = 0;
+            }
+        } else if (state.currentBand === "busy") {
+            state.aboveThresholdSampleCount = 0;
+
+            if (state.smoothedActivityBytesPerSecond <= profile.downshiftBytesPerSecond) {
+                if (state.cooldownStartUs === 0) {
+                    state.cooldownStartUs = nowUs;
+                } else if ((nowUs - state.cooldownStartUs) >= this._getEffectiveAdaptiveCooldownUs(profile, state.smoothedActivityBytesPerSecond)) {
+                    nextBand = "idle";
+                    state.cooldownStartUs = 0;
+                }
+            } else {
+                state.cooldownStartUs = 0;
+            }
+        } else {
+            state.aboveThresholdSampleCount = 0;
+            state.cooldownStartUs = 0;
+        }
+
+        state.currentBand = nextBand;
+        state.currentIntervalSeconds = nextBand === "busy" ? fastIntervalSeconds : baseIntervalSeconds;
     }
 
     _tickSample() {
@@ -376,21 +552,21 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             historyLength: this.historyLength || 60,
             smoothingMode: this.smoothingMode || "moving-average"
         });
+        this._updateAdaptiveSamplingState(snapshot);
         this._refreshTextMetricsCache(snapshot);
 
         if (!snapshot.availableInterfaces || snapshot.availableInterfaces.length === 0) {
             this._renderUnavailable("No network devices are available yet.");
-            return true;
+            return;
         }
 
         const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
         if (shownInterfaceNames.size === 0 && !this.showGroupAll) {
             this._renderUnavailable("Choose at least one interface in the Interfaces tab.");
-            return true;
+            return;
         }
 
         this._renderSnapshot(snapshot);
-        return true;
     }
 
     _renderUnavailable(reason) {

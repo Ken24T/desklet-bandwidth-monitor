@@ -105,6 +105,11 @@ Current visible behaviour:
 - the Appearance tab now includes a quick restore action for returning to the built-in layout baselines or the default manual layout values
 - sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
 - when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
+- the General tab can now switch between `Fixed` and `Adaptive` refresh modes, with Adaptive mode using the normal refresh rate as its calm cadence and a separate faster rate during sustained traffic
+- Adaptive mode includes `Conservative`, `Balanced`, and `Responsive` presets plus a cooldown timer so refresh changes do not bounce around during short bursts
+- Adaptive mode now waits for a short sustained rise before switching to the faster refresh rate, so one brief spike is less likely to trigger a faster polling cadence
+- Adaptive decisions now follow the busier direction of traffic rather than simply adding RX and TX together, so low background traffic in one direction is less likely to force the faster refresh rate on its own
+- When busy traffic drops sharply back to calm levels, Adaptive mode now returns to the base refresh rate sooner instead of holding the faster cadence for the full cooldown every time, with the quicker fallback capped at about two seconds in the current prototype
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
 - custom theme colours can be recovered quickly by applying a curated palette or resetting back to the dark or light baseline colour sets
 - curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
@@ -112,6 +117,7 @@ Current visible behaviour:
 - sparkline charts can be shown or hidden
 - hovering an interface row shows a styled anchored details card with device details, totals, and any current note or warning for that row
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
+- after a large burst ends, sparkline scale now relaxes back toward current traffic in a time-aware way so normal low traffic becomes readable again more quickly
 - history length and smoothing behaviour can be adjusted
 - the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates
 - empty and edge states now use shorter desktop-facing messages for cases such as no visible interfaces, unavailable devices, or temporarily offline links
@@ -136,6 +142,7 @@ Current limitations are expected for this early phase:
 - per-interface colours and richer layout controls are not implemented yet
 - theme controls are intentionally restrained rather than fully granular
 - very low sampling intervals increase wakeups and redraw frequency, so they are a responsiveness tradeoff rather than a free performance gain
+- when Adaptive refresh is enabled, sparkline history still uses a sample-count buffer, so the chart covers a shorter time span during busy periods and a longer time span during calm periods
 
 ## Document Maintenance Rule
 
