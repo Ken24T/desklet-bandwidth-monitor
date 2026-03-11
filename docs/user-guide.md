@@ -110,6 +110,7 @@ Current visible behaviour:
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
 - the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates
+- empty and edge states now use shorter desktop-facing messages for cases such as no visible interfaces, unavailable devices, or temporarily offline links
 - obviously implausible spike samples are suppressed when recent history makes them suspect
 - the layout focuses on the interface rows without extra summary text above or below the monitor cards
 

@@ -376,6 +376,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
         this._refreshTextMetricsCache(snapshot);
 
+        if (!snapshot.availableInterfaces || snapshot.availableInterfaces.length === 0) {
+            this._renderUnavailable("No network devices are available yet.");
+            return true;
+        }
+
         if (!snapshot.hasVisibleRows && !this.showGroupAll) {
             this._renderUnavailable("Choose at least one interface in the Interfaces tab.");
             return true;
@@ -393,7 +398,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _renderSnapshot(snapshot) {
-        this._statusLabel.visible = false;
+        const allVisibleRowsUnavailable = snapshot.rows.length > 0 && snapshot.rows.every(row => !row.available);
+        if (allVisibleRowsUnavailable) {
+            this._statusLabel.set_text(_("Waiting for one of the visible interfaces to come online."));
+            this._statusLabel.visible = true;
+        } else {
+            this._statusLabel.visible = false;
+        }
+
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
     }
 
@@ -820,6 +832,22 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         if (state === "preferred") {
             return _("Preferred");
+        }
+
+        if (state === "down") {
+            return _("Offline");
+        }
+
+        if (state === "lowerlayerdown") {
+            return _("Disconnected");
+        }
+
+        if (state === "dormant") {
+            return _("Idle");
+        }
+
+        if (state === "unavailable") {
+            return _("Unavailable");
         }
 
         if (["up", "unknown", "idle"].includes(state)) {
