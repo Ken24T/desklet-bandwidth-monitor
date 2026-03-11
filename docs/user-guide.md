@@ -84,6 +84,7 @@ Current visible behaviour:
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
 - the optional Group All row now starts off by default so the first-run view stays focused on individual interfaces
 - individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
+- when the Group All row is enabled, its visual emphasis can be set to `Subtle`, `Normal`, or `Prominent`
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based

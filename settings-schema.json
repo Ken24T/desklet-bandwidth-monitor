@@ -30,7 +30,7 @@
     "section-interface-selection": {
       "type": "section",
       "title": "Selection and Visibility",
-      "keys": ["selection-mode", "preferred-interface", "include-tunnel-interfaces", "include-loopback-interfaces", "show-group-all"]
+      "keys": ["selection-mode", "preferred-interface", "include-tunnel-interfaces", "include-loopback-interfaces", "show-group-all", "aggregate-emphasis"]
     },
     "section-interface-rows": {
       "type": "section",
@@ -208,6 +208,18 @@
     "default": false,
     "description": "Show Group All Interfaces row",
     "tooltip": "Display the aggregate row for the monitored interfaces, including interfaces whose individual rows are currently hidden."
+  },
+  "aggregate-emphasis": {
+    "type": "combobox",
+    "default": "normal",
+    "description": "Group All emphasis",
+    "tooltip": "Choose whether the aggregate row should sit quietly in the background or stand out more clearly when shown.",
+    "dependency": "show-group-all=true",
+    "options": {
+      "Subtle": "subtle",
+      "Normal": "normal",
+      "Prominent": "prominent"
+    }
   },
   "reset-interface-request": {
     "type": "entry",

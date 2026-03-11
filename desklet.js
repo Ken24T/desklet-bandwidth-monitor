@@ -58,6 +58,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("interface-display-settings", "interfaceDisplaySettings", this._onInterfaceDisplaySettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("aggregate-emphasis", "aggregateEmphasis", this._syncDisplaySettings.bind(this));
         this.settings.bind("reset-interface-request", "resetInterfaceRequest", this._onResetInterfaceRequested.bind(this));
         this.settings.bind("theme-mode", "themeMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("manual-theme-action", "manualThemeAction", this._onManualThemeActionChanged.bind(this));
@@ -405,6 +406,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
             const displayedMetrics = this._getDisplayedMetrics(row, row.interfaceInfo.name);
+            widget.isAggregate = false;
             widget.isPrimary = Boolean(row.selected);
             widget.primaryState = row.state;
 
@@ -436,6 +438,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const widget = this._ensureRowWidget(key, aggregate.title);
             visibleKeys.push(key);
             const displayedMetrics = this._getDisplayedMetrics(aggregate, "aggregate");
+            widget.isAggregate = true;
             widget.isPrimary = false;
             widget.primaryState = "";
 
@@ -484,23 +487,46 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const rowPadding = Math.max(8, spacing);
         const palette = this._themePalette || this._getThemePalette();
         const primaryAccent = this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)");
+        const aggregateAccent = this._resolveColor(palette.txAccent, "rgb(255, 191, 87)");
         const isPrimary = Boolean(widget.isPrimary);
+        const isAggregate = Boolean(widget.isAggregate);
+        const aggregateEmphasis = isAggregate ? (this.aggregateEmphasis || "normal") : "normal";
         const stateText = widget.stateLabel.get_text();
         const primaryBackground = this._colourToCss(primaryAccent, 0.14);
         const primaryBorder = this._colourToCss(primaryAccent, 0.78);
+        let rowBackground = palette.rowBackground;
+        let borderColour = "transparent";
+        let titleColour = palette.primaryText;
+        let footerColour = palette.secondaryText;
+        let rowOpacity = 255;
 
-        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${isPrimary ? primaryBackground : palette.rowBackground}; border: 1px solid ${isPrimary ? primaryBorder : "transparent"};`;
+        if (isPrimary) {
+            rowBackground = primaryBackground;
+            borderColour = primaryBorder;
+        } else if (isAggregate) {
+            if (aggregateEmphasis === "subtle") {
+                rowBackground = palette.metricBackground;
+                titleColour = palette.secondaryText;
+                rowOpacity = 220;
+            } else if (aggregateEmphasis === "prominent") {
+                rowBackground = this._colourToCss(aggregateAccent, 0.12);
+                borderColour = this._colourToCss(aggregateAccent, 0.6);
+            }
+        }
+
+        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${rowBackground}; border: 1px solid ${borderColour};`;
+        widget.container.opacity = rowOpacity;
         widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
         widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
-        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${palette.primaryText};`;
+        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${titleColour};`;
         widget.stateLabel.style = stateText
             ? `font-size: ${0.82 * fontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
             : "";
         widget.stateLabel.visible = Boolean(stateText);
         widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
-        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${palette.secondaryText};`;
+        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${footerColour};`;
         widget.header.x_align = Clutter.ActorAlign.START;
         widget.headerInfo.x_align = Clutter.ActorAlign.START;
         widget.liveMetrics.x_align = Clutter.ActorAlign.START;
