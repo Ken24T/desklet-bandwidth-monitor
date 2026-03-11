@@ -82,9 +82,9 @@ Current visible behaviour:
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
-- the optional Group All row now starts off by default so the first-run view stays focused on individual interfaces
-- individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
-- when the Group All row is enabled, its visual emphasis can be set to `Subtle`, `Normal`, or `Prominent`
+- the optional combined traffic row now starts off by default so the first-run view stays focused on individual interfaces
+- individual interface rows can be hidden while the combined traffic row continues to show the total for the monitored interfaces
+- when the combined traffic row is enabled, its visual emphasis can be set to `Subtle`, `Normal`, or `Prominent`
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based
@@ -112,6 +112,7 @@ Current visible behaviour:
 - history length and smoothing behaviour can be adjusted
 - the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates
 - empty and edge states now use shorter desktop-facing messages for cases such as no visible interfaces, unavailable devices, or temporarily offline links
+- several Configure labels and option names have been simplified so the settings panel reads more like a desktop tool and less like a diagnostic panel
 - obviously implausible spike samples are suppressed when recent history makes them suspect
 - the layout focuses on the interface rows without extra summary text above or below the monitor cards
 

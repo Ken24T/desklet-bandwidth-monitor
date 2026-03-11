@@ -24,12 +24,12 @@
     },
     "section-general-behaviour": {
       "type": "section",
-      "title": "General Behaviour",
+      "title": "General",
       "keys": ["sample-seconds", "rate-unit-mode", "show-header"]
     },
     "section-interface-selection": {
       "type": "section",
-      "title": "Selection and Visibility",
+      "title": "Connections",
       "keys": ["selection-mode", "preferred-interface", "include-tunnel-interfaces", "include-loopback-interfaces", "show-group-all", "aggregate-emphasis"]
     },
     "section-interface-rows": {
@@ -39,7 +39,7 @@
     },
     "section-layout-display": {
       "type": "section",
-      "title": "Layout and Display",
+      "title": "Layout",
       "keys": ["display-density", "layout-restore-action", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
     },
     "section-theme": {
@@ -64,13 +64,13 @@
     "max": 10,
     "step": 0.25,
     "units": "s",
-    "description": "Sampling interval",
+    "description": "Refresh rate",
     "tooltip": "How often the desklet should sample network counters. Lower values refresh faster but increase CPU wakeups."
   },
   "rate-unit-mode": {
     "type": "combobox",
     "default": "auto-bytes",
-    "description": "Rate unit mode",
+    "description": "Speed units",
     "options": {
       "Automatic bytes per second": "auto-bytes",
       "Automatic bits per second": "auto-bits"
@@ -79,7 +79,7 @@
   "show-header": {
     "type": "switch",
     "default": true,
-    "description": "Show desklet header",
+    "description": "Show title",
     "tooltip": "Display the desklet title above the content."
   },
   "theme-header": {
@@ -89,7 +89,7 @@
   "theme-mode": {
     "type": "combobox",
     "default": "dark",
-    "description": "Theme mode",
+    "description": "Colour theme",
     "options": {
       "Dark": "dark",
       "Light": "light",
@@ -99,7 +99,7 @@
   "manual-theme-action": {
     "type": "combobox",
     "default": "none",
-    "description": "Apply custom palette",
+    "description": "Quick colour preset",
     "tooltip": "Load a curated custom palette or restore the default dark baseline colours.",
     "dependency": "theme-mode=manual",
     "options": {
@@ -156,29 +156,29 @@
   "selection-mode": {
     "type": "combobox",
     "default": "auto",
-    "description": "Interface selection mode",
+    "description": "Primary connection",
     "options": {
-      "Auto-detect": "auto",
-      "Preferred interface": "preferred"
+      "Automatic": "auto",
+      "Preferred device": "preferred"
     }
   },
   "preferred-interface": {
     "type": "entry",
     "default": "",
-    "description": "Preferred interface",
-    "tooltip": "Interface name such as enp3s0 or wlo1. Used when selection mode is Preferred interface."
+    "description": "Preferred device",
+    "tooltip": "Enter a device name such as enp3s0 or wlo1 when Primary connection is set to Preferred device."
   },
   "include-tunnel-interfaces": {
     "type": "switch",
     "default": false,
-    "description": "Include VPN and tunnel interfaces in auto selection",
-    "tooltip": "Allow auto-detection to choose VPN interfaces such as tun0 or wg0 as the primary interface. VPN rows are shown by default unless you explicitly filter visible interfaces."
+    "description": "Allow VPN or tunnel devices as primary",
+    "tooltip": "Let automatic selection choose VPN or tunnel devices such as tun0 or wg0 as the primary connection."
   },
   "include-loopback-interfaces": {
     "type": "switch",
     "default": false,
-    "description": "Include loopback interfaces in row controls",
-    "tooltip": "Show loopback interfaces such as lo in the per-interface row controls and allow them to appear as desklet rows when enabled there."
+    "description": "Show loopback devices",
+    "tooltip": "Include loopback devices such as lo in the per-device row controls."
   },
   "interface-row-controls": {
     "type": "custom",
@@ -206,14 +206,14 @@
   "show-group-all": {
     "type": "switch",
     "default": false,
-    "description": "Show Group All Interfaces row",
-    "tooltip": "Display the aggregate row for the monitored interfaces, including interfaces whose individual rows are currently hidden."
+    "description": "Show combined row",
+    "tooltip": "Display a combined traffic row for the monitored interfaces, including devices whose individual rows are hidden."
   },
   "aggregate-emphasis": {
     "type": "combobox",
     "default": "normal",
-    "description": "Group All emphasis",
-    "tooltip": "Choose whether the aggregate row should sit quietly in the background or stand out more clearly when shown.",
+    "description": "Combined row emphasis",
+    "tooltip": "Choose whether the combined row should sit quietly in the background or stand out more clearly when shown.",
     "dependency": "show-group-all=true",
     "options": {
       "Subtle": "subtle",
@@ -234,7 +234,7 @@
   "display-density": {
     "type": "combobox",
     "default": "comfortable",
-    "description": "Display density",
+    "description": "Density",
     "tooltip": "Choose a coordinated layout preset, or switch to Manual to tune labels, totals, spacing, and chart visibility yourself.",
     "options": {
       "Compact": "compact",
@@ -246,7 +246,7 @@
   "layout-restore-action": {
     "type": "combobox",
     "default": "none",
-    "description": "Restore layout preset",
+    "description": "Restore layout",
     "tooltip": "Quickly return to one of the built-in layout baselines after experimenting.",
     "options": {
       "No action": "none",
@@ -259,7 +259,7 @@
   "show-labels": {
     "type": "switch",
     "default": true,
-    "description": "Show metric labels",
+    "description": "Show RX/TX labels",
     "tooltip": "Display labels such as RX, TX, Total RX, and Total TX.",
     "dependency": "display-density=manual"
   },
@@ -277,7 +277,7 @@
     "max": 2.0,
     "step": 0.1,
     "units": "x",
-    "description": "Font scale",
+    "description": "Text size",
     "tooltip": "Scale the desklet text without changing the desklet size.",
     "dependency": "display-density=manual"
   },
@@ -295,7 +295,7 @@
   "content-alignment": {
     "type": "combobox",
     "default": "left",
-    "description": "Content alignment",
+    "description": "Text alignment",
     "dependency": "display-density=manual",
     "options": {
       "Left": "left",
@@ -310,7 +310,7 @@
   "show-sparklines": {
     "type": "switch",
     "default": true,
-    "description": "Show sparkline charts",
+    "description": "Show history charts",
     "tooltip": "Display history charts for RX and TX below each row.",
     "dependency": "display-density=manual"
   },
@@ -321,7 +321,7 @@
     "max": 120,
     "step": 5,
     "units": "samples",
-    "description": "History length",
+    "description": "History window",
     "tooltip": "How many samples should be retained for each sparkline."
   },
   "smoothing-mode": {

@@ -193,13 +193,13 @@ var SessionMonitor = class {
             const history = this._appendAggregateHistory(0, 0, historyLength, smoothingMode);
             return {
                 available: false,
-                title: "Group All",
+                title: "Combined traffic",
                 state: "idle",
                 rxRate: 0,
                 txRate: 0,
                 totalRxBytes: 0,
                 totalTxBytes: 0,
-                footer: "Group All will appear when a visible interface has traffic data.",
+                footer: "The combined row appears once a visible device has traffic data.",
                 rxHistory: history.rx,
                 txHistory: history.tx
             };
@@ -213,7 +213,7 @@ var SessionMonitor = class {
             return result;
         }, {
             available: true,
-            title: "Group All",
+            title: "Combined traffic",
             state: "",
             rxRate: 0,
             txRate: 0,

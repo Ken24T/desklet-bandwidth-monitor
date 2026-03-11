@@ -946,7 +946,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         ];
 
         if (row.selected) {
-            metaLines.push(`${_("Role")}: ${row.state === "preferred" ? _("Preferred interface") : _("Auto-selected interface")}`);
+            metaLines.push(`${_("Role")}: ${row.state === "preferred" ? _("Preferred device") : _("Automatic choice")}`);
         }
 
         if (row.interfaceInfo.isTunnel) {
