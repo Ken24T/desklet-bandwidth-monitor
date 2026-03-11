@@ -139,10 +139,6 @@ var SessionMonitor = class {
                 }
 
                 hasRate = true;
-
-                if (spikeSuppressed) {
-                    footer = "Ignoring a suspicious spike to keep the reading steady.";
-                }
             } else {
                 footer = "Traffic counters reset. Waiting for a fresh reading.";
             }
@@ -296,21 +292,37 @@ var SessionMonitor = class {
 
     _stabiliseRates(key, rxRate, txRate) {
         const history = this._historyByInterface[key] || { rx: [], tx: [] };
-        const baselineRx = this._averagePositiveTail(history.rx, 5);
-        const baselineTx = this._averagePositiveTail(history.tx, 5);
+        const recentRx = history.rx.slice(-5);
+        const recentTx = history.tx.slice(-5);
+        const baselineRx = this._averagePositiveTail(recentRx, 5);
+        const baselineTx = this._averagePositiveTail(recentTx, 5);
         let suppressed = false;
 
-        if (baselineRx > 1024 && rxRate > Math.max(1024 * 1024, baselineRx * 20)) {
+        if (this._hasStableRecentTraffic(recentRx, baselineRx) && rxRate > Math.max(1024 * 1024, baselineRx * 20)) {
             rxRate = baselineRx;
             suppressed = true;
         }
 
-        if (baselineTx > 1024 && txRate > Math.max(1024 * 1024, baselineTx * 20)) {
+        if (this._hasStableRecentTraffic(recentTx, baselineTx) && txRate > Math.max(1024 * 1024, baselineTx * 20)) {
             txRate = baselineTx;
             suppressed = true;
         }
 
         return { rxRate, txRate, suppressed };
+    }
+
+    _hasStableRecentTraffic(series, baseline) {
+        if (baseline <= 1024 || !series || series.length < 4) {
+            return false;
+        }
+
+        const activeSamples = series.filter(value => value > 1024);
+        if (activeSamples.length < 4) {
+            return false;
+        }
+
+        const weakestRecentActiveSample = Math.min(...activeSamples);
+        return weakestRecentActiveSample >= Math.max(1024, baseline * 0.15);
     }
 
     _averagePositiveTail(series, count) {

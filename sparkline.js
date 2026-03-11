@@ -1,5 +1,10 @@
 const Cairo = imports.cairo;
+const GLib = imports.gi.GLib;
 const St = imports.gi.St;
+
+const SCALE_DECAY_PER_SECOND = 0.72;
+const SCALE_RAPID_DECAY_PER_SECOND = 0.4;
+const RAPID_DECAY_TARGET_RATIO = 0.3;
 
 var SparklineView = class {
     constructor() {
@@ -9,6 +14,7 @@ var SparklineView = class {
         this._txHistory = [];
         this._height = 42;
         this._scaleMax = 1;
+        this._lastScaleUpdateUs = 0;
         this._visible = true;
         this._backgroundColor = [1, 1, 1, 0.05];
         this._rxColor = [0.45, 0.78, 1.0, 0.95];
@@ -25,12 +31,22 @@ var SparklineView = class {
         this._txColor = options.txColor || [1.0, 0.78, 0.4, 0.95];
         const currentPeak = Math.max(1, ...this._rxHistory, ...this._txHistory);
         const targetScale = currentPeak * 1.15;
+        const nowUs = GLib.get_monotonic_time();
+        const elapsedSeconds = this._lastScaleUpdateUs > 0
+            ? Math.max(0.001, (nowUs - this._lastScaleUpdateUs) / 1000000)
+            : 0;
 
         if (targetScale >= this._scaleMax) {
             this._scaleMax = targetScale;
         } else {
-            this._scaleMax = Math.max(targetScale, this._scaleMax * 0.92);
+            const decayPerSecond = targetScale <= (this._scaleMax * RAPID_DECAY_TARGET_RATIO)
+                ? SCALE_RAPID_DECAY_PER_SECOND
+                : SCALE_DECAY_PER_SECOND;
+            const decayFactor = elapsedSeconds > 0 ? Math.pow(decayPerSecond, elapsedSeconds) : decayPerSecond;
+            this._scaleMax = Math.max(targetScale, this._scaleMax * decayFactor);
         }
+
+        this._lastScaleUpdateUs = nowUs;
 
         this.actor.visible = this._visible;
         this.actor.style = `height: ${this._height}px;`;
