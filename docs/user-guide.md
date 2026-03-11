@@ -97,6 +97,7 @@ Current visible behaviour:
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
+- the Appearance tab can switch into a primary-device focus mode that shows only the currently selected device row, while still allowing the optional combined row alongside it
 - the default `Comfortable` density keeps the first-run view calmer by hiding sparklines until you opt into more detail
 - when sparklines are hidden, the totals shift into a tighter top-row summary so the desklet still looks intentionally compact
 - the Appearance tab now includes a quick restore action for returning to the built-in layout baselines or the default manual layout values

@@ -40,7 +40,7 @@
     "section-layout-display": {
       "type": "section",
       "title": "Layout",
-      "keys": ["display-density", "layout-restore-action", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
+      "keys": ["display-density", "focus-interface-mode", "layout-restore-action", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
     },
     "section-theme": {
       "type": "section",
@@ -242,6 +242,12 @@
       "Detailed": "detailed",
       "Manual": "manual"
     }
+  },
+  "focus-interface-mode": {
+    "type": "switch",
+    "default": false,
+    "description": "Focus on primary device",
+    "tooltip": "Show only the current primary device row while keeping the optional combined row available if you turn it on."
   },
   "layout-restore-action": {
     "type": "combobox",

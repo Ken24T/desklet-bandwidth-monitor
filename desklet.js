@@ -69,6 +69,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("rx-accent-color", "rxAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("tx-accent-color", "txAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("display-density", "displayDensity", this._syncDisplaySettings.bind(this));
+        this.settings.bind("focus-interface-mode", "focusInterfaceMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("layout-restore-action", "layoutRestoreAction", this._onLayoutRestoreActionChanged.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
@@ -498,13 +499,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _applyRowDisplaySettings(widget, displaySettings) {
         const { fontScale, spacing, alignment, showLabels, showTotals, showSparklines } = displaySettings;
-        const rowPadding = Math.max(8, spacing);
         const palette = this._themePalette || this._getThemePalette();
         const primaryAccent = this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)");
         const aggregateAccent = this._resolveColor(palette.txAccent, "rgb(255, 191, 87)");
         const isPrimary = Boolean(widget.isPrimary);
         const isAggregate = Boolean(widget.isAggregate);
+        const isFocusedPrimary = Boolean(this.focusInterfaceMode) && isPrimary && !isAggregate;
         const aggregateEmphasis = isAggregate ? (this.aggregateEmphasis || "normal") : "normal";
+        const effectiveFontScale = isFocusedPrimary ? fontScale * 1.12 : fontScale;
+        const effectiveSpacing = isFocusedPrimary ? Math.max(spacing, 12) : spacing;
+        const rowPadding = Math.max(8, effectiveSpacing);
         const stateText = widget.stateLabel.get_text();
         const primaryBackground = this._colourToCss(primaryAccent, 0.14);
         const primaryBorder = this._colourToCss(primaryAccent, 0.78);
@@ -530,21 +534,21 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         this._syncChartlessRowPlacement(widget, showSparklines);
 
-        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${rowBackground}; border: 1px solid ${borderColour};`;
+        widget.container.style = `padding: ${rowPadding}px; border-radius: ${isFocusedPrimary ? 14 : 10}px; spacing: ${Math.max(6, effectiveSpacing - 2)}px; background-color: ${rowBackground}; border: 1px solid ${borderColour};`;
         widget.container.opacity = rowOpacity;
-        widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
-        widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
-        widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
+        widget.header.style = `spacing: ${Math.max(10, effectiveSpacing)}px;`;
+        widget.headerInfo.style = `spacing: ${Math.max(10, effectiveSpacing)}px;`;
+        widget.liveMetrics.style = `spacing: ${Math.max(8, effectiveSpacing - 2)}px;`;
         widget.totalsRow.style = showSparklines
-            ? `spacing: ${Math.max(12, spacing)}px;`
-            : `spacing: ${Math.max(10, spacing - 1)}px; padding: 5px 8px; border-radius: 999px; background-color: ${palette.metricBackground};`;
-        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${titleColour};`;
+            ? `spacing: ${Math.max(12, effectiveSpacing)}px;`
+            : `spacing: ${Math.max(10, effectiveSpacing - 1)}px; padding: 5px 8px; border-radius: 999px; background-color: ${palette.metricBackground};`;
+        widget.titleLabel.style = `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${titleColour};`;
         widget.stateLabel.style = stateText
-            ? `font-size: ${0.82 * fontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
+            ? `font-size: ${0.82 * effectiveFontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
             : "";
         widget.stateLabel.visible = Boolean(stateText);
-        widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
-        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${footerColour};`;
+        widget.totalsTitleLabel.style = `font-size: ${0.92 * effectiveFontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
+        widget.footer.style = `font-size: ${0.88 * effectiveFontScale}em; color: ${footerColour};`;
         widget.header.x_align = Clutter.ActorAlign.START;
         widget.headerInfo.x_align = Clutter.ActorAlign.START;
         widget.liveMetrics.x_align = Clutter.ActorAlign.START;
@@ -559,7 +563,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.totalsTitleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
-        widget.sparkline.actor.style = `height: ${this._getSparklineHeight(displaySettings)}px;`;
+        widget.sparkline.actor.style = `height: ${isFocusedPrimary ? Math.round(this._getSparklineHeight(displaySettings) * 1.18) : this._getSparklineHeight(displaySettings)}px;`;
         widget.sparkline.actor.visible = showSparklines;
         widget.totalsTitleLabel.visible = showSparklines;
 
@@ -577,16 +581,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             metric.container.style = isInline ? "" : `background-color: ${palette.metricBackground};`;
             if (isInline) {
                 metric.labelWidget.visible = true;
-                metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
-                metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`;
+                metric.labelWidget.style = `font-size: ${0.85 * effectiveFontScale}em; color: ${palette.secondaryText};`;
+                metric.valueWidget.style = `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${accent};`;
             } else {
                 metric.labelWidget.visible = showLabels;
                 metric.labelWidget.style = isCompact
-                    ? `font-size: ${0.8 * fontScale}em; color: ${palette.secondaryText};`
-                    : `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
+                    ? `font-size: ${0.8 * effectiveFontScale}em; color: ${palette.secondaryText};`
+                    : `font-size: ${0.85 * effectiveFontScale}em; color: ${palette.secondaryText};`;
                 metric.valueWidget.style = isCompact
-                    ? `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`
-                    : `font-size: ${1.05 * fontScale}em; font-weight: bold; color: ${accent};`;
+                    ? `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${accent};`
+                    : `font-size: ${1.05 * effectiveFontScale}em; font-weight: bold; color: ${accent};`;
             }
         });
 
@@ -819,6 +823,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _resolveShownInterfaceNames(rows) {
+        if (this.focusInterfaceMode) {
+            const primaryRow = rows.find(row => row.selected && row.interfaceInfo);
+            if (primaryRow) {
+                return new Set([primaryRow.interfaceInfo.name]);
+            }
+
+            const fallbackPrimary = rows.find(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback));
+            return fallbackPrimary ? new Set([fallbackPrimary.interfaceInfo.name]) : new Set();
+        }
+
         const fallback = rows
             .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
             .map(row => row.interfaceInfo.name);
