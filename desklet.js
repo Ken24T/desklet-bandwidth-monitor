@@ -237,6 +237,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             liveMetrics,
             totalsRow,
             totalsTitleLabel,
+            totalsInHeader: false,
             sparkline,
             footer,
             rxValue,
@@ -514,12 +515,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             }
         }
 
+        this._syncChartlessRowPlacement(widget, showSparklines);
+
         widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${rowBackground}; border: 1px solid ${borderColour};`;
         widget.container.opacity = rowOpacity;
         widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
-        widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
+        widget.totalsRow.style = showSparklines
+            ? `spacing: ${Math.max(12, spacing)}px;`
+            : `spacing: ${Math.max(10, spacing - 1)}px; padding: 5px 8px; border-radius: 999px; background-color: ${palette.metricBackground};`;
         widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${titleColour};`;
         widget.stateLabel.style = stateText
             ? `font-size: ${0.82 * fontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
@@ -543,6 +548,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.footer.x_align = alignment;
         widget.sparkline.actor.style = `height: ${this._getSparklineHeight(displaySettings)}px;`;
         widget.sparkline.actor.visible = showSparklines;
+        widget.totalsTitleLabel.visible = showSparklines;
 
         [
             { metric: widget.rxValue, accent: palette.rxAccent },
@@ -572,6 +578,21 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
 
         widget.totalsRow.visible = showTotals;
+    }
+
+    _syncChartlessRowPlacement(widget, showSparklines) {
+        if (!showSparklines && !widget.totalsInHeader) {
+            widget.container.remove_child(widget.totalsRow);
+            widget.header.add_child(widget.totalsRow);
+            widget.totalsInHeader = true;
+            return;
+        }
+
+        if (showSparklines && widget.totalsInHeader) {
+            widget.header.remove_child(widget.totalsRow);
+            widget.container.insert_child_at_index(widget.totalsRow, 1);
+            widget.totalsInHeader = false;
+        }
     }
 
     _resolveDisplaySettings() {
