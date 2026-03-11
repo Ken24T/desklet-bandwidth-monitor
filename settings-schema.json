@@ -40,7 +40,7 @@
     "section-layout-display": {
       "type": "section",
       "title": "Layout and Display",
-      "keys": ["display-density", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
+      "keys": ["display-density", "layout-restore-action", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
     },
     "section-theme": {
       "type": "section",
@@ -241,6 +241,19 @@
       "Comfortable": "comfortable",
       "Detailed": "detailed",
       "Manual": "manual"
+    }
+  },
+  "layout-restore-action": {
+    "type": "combobox",
+    "default": "none",
+    "description": "Restore layout preset",
+    "tooltip": "Quickly return to one of the built-in layout baselines after experimenting.",
+    "options": {
+      "No action": "none",
+      "Restore Comfortable": "restore-comfortable",
+      "Restore Compact": "restore-compact",
+      "Restore Detailed": "restore-detailed",
+      "Restore Manual defaults": "restore-manual-defaults"
     }
   },
   "show-labels": {

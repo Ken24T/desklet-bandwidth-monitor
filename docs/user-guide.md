@@ -99,6 +99,7 @@ Current visible behaviour:
 - the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
 - the default `Comfortable` density keeps the first-run view calmer by hiding sparklines until you opt into more detail
 - when sparklines are hidden, the totals shift into a tighter top-row summary so the desklet still looks intentionally compact
+- the Appearance tab now includes a quick restore action for returning to the built-in layout baselines or the default manual layout values
 - sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
 - when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents

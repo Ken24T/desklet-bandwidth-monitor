@@ -69,6 +69,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("rx-accent-color", "rxAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("tx-accent-color", "txAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("display-density", "displayDensity", this._syncDisplaySettings.bind(this));
+        this.settings.bind("layout-restore-action", "layoutRestoreAction", this._onLayoutRestoreActionChanged.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
@@ -788,6 +789,32 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.setValue("rx-accent-color", palette.rxAccentColor);
         this.settings.setValue("tx-accent-color", palette.txAccentColor);
         this.settings.setValue("manual-theme-action", "none");
+        this._syncDisplaySettings();
+    }
+
+    _onLayoutRestoreActionChanged() {
+        const action = (this.layoutRestoreAction || "none").trim();
+        if (!action || action === "none") {
+            return;
+        }
+
+        if (action === "restore-comfortable") {
+            this.settings.setValue("display-density", "comfortable");
+        } else if (action === "restore-compact") {
+            this.settings.setValue("display-density", "compact");
+        } else if (action === "restore-detailed") {
+            this.settings.setValue("display-density", "detailed");
+        } else if (action === "restore-manual-defaults") {
+            this.settings.setValue("display-density", "manual");
+            this.settings.setValue("show-labels", true);
+            this.settings.setValue("show-totals", true);
+            this.settings.setValue("font-scale", 1.0);
+            this.settings.setValue("row-spacing", 10);
+            this.settings.setValue("content-alignment", "left");
+            this.settings.setValue("show-sparklines", true);
+        }
+
+        this.settings.setValue("layout-restore-action", "none");
         this._syncDisplaySettings();
     }
 
