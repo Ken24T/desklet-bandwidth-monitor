@@ -594,10 +594,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _syncRowWidgets(rows, aggregate) {
         const displaySettings = this._displaySettings || this._resolveDisplaySettings();
         const visibleKeys = [];
+        const orderedRows = this._orderRowsByConfiguredOrder(rows);
         const shownInterfaceNames = this._resolveShownInterfaceNames(rows);
-        const visibleRowCount = rows.filter(row => shownInterfaceNames.has(row.interfaceInfo.name)).length;
+        const visibleRowCount = orderedRows.filter(row => shownInterfaceNames.has(row.interfaceInfo.name)).length;
 
-        rows.forEach(row => {
+        orderedRows.forEach(row => {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
             const displayedMetrics = this._getDisplayedMetrics(row, row.interfaceInfo.name);
@@ -656,6 +657,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.container.visible = true;
         }
 
+        this._syncPanelChildOrder(visibleKeys);
+
         Object.keys(this._rowsByKey).forEach(key => {
             if (!visibleKeys.includes(key)) {
                 this._rowsByKey[key].container.visible = false;
@@ -670,11 +673,32 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _ensureRowWidget(key, title) {
         if (!this._rowsByKey[key]) {
             this._rowsByKey[key] = this._createRowWidget(title);
+            this._rowsByKey[key].container._bandwidthMonitorRowKey = key;
             this._panelBox.add_child(this._rowsByKey[key].container);
             this._applyRowDisplaySettings(this._rowsByKey[key], this._displaySettings || this._resolveDisplaySettings());
         }
 
         return this._rowsByKey[key];
+    }
+
+    _syncPanelChildOrder(visibleKeys) {
+        const hiddenKeys = Object.keys(this._rowsByKey).filter(key => !visibleKeys.includes(key));
+        const desiredKeys = [...visibleKeys, ...hiddenKeys];
+        const currentKeys = this._panelBox.get_children().map(child => child._bandwidthMonitorRowKey).filter(Boolean);
+
+        if (currentKeys.length === desiredKeys.length && currentKeys.every((key, index) => key === desiredKeys[index])) {
+            return;
+        }
+
+        desiredKeys.forEach(key => {
+            const widget = this._rowsByKey[key];
+            if (!widget) {
+                return;
+            }
+
+            this._panelBox.remove_child(widget.container);
+            this._panelBox.add_child(widget.container);
+        });
     }
 
     _applyRowDisplaySettings(widget, displaySettings) {
@@ -1017,29 +1041,77 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             return fallbackPrimary ? new Set([fallbackPrimary.interfaceInfo.name]) : new Set();
         }
 
-        const fallback = rows
+        return this._resolveVisibleInterfaceState(rows).shownNames;
+    }
+
+    _resolveVisibleInterfaceState(rows) {
+        const fallbackOrder = rows
             .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
             .map(row => row.interfaceInfo.name);
         const rawValue = (this.visibleInterfaces || "").trim();
 
         if (!rawValue) {
-            return new Set(fallback);
+            return {
+                shownNames: new Set(fallbackOrder),
+                orderedNames: fallbackOrder,
+            };
         }
 
         try {
             const parsed = JSON.parse(rawValue);
             if (parsed && Array.isArray(parsed.shown)) {
-                const allowedNames = new Set(
-                    rows
-                        .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
-                        .map(row => row.interfaceInfo.name)
+                const orderedNames = this._normaliseInterfaceOrder(
+                    Array.isArray(parsed.order) ? parsed.order : [],
+                    fallbackOrder
                 );
-                return new Set(parsed.shown.filter(name => typeof name === "string" && allowedNames.has(name)));
+                const allowedNames = new Set(orderedNames);
+
+                return {
+                    shownNames: new Set(parsed.shown.filter(name => typeof name === "string" && allowedNames.has(name))),
+                    orderedNames,
+                };
             }
         } catch (error) {
         }
 
-        return new Set(rawValue.split(",").map(name => name.trim()).filter(Boolean));
+        const shownNames = rawValue.split(",").map(name => name.trim()).filter(Boolean);
+        const orderedNames = this._normaliseInterfaceOrder(shownNames, fallbackOrder);
+        return {
+            shownNames: new Set(shownNames.filter(name => orderedNames.includes(name))),
+            orderedNames,
+        };
+    }
+
+    _normaliseInterfaceOrder(preferredOrder, fallbackOrder) {
+        const normalised = [];
+        const seen = new Set();
+
+        preferredOrder.forEach(name => {
+            if (typeof name === "string" && fallbackOrder.includes(name) && !seen.has(name)) {
+                normalised.push(name);
+                seen.add(name);
+            }
+        });
+
+        fallbackOrder.forEach(name => {
+            if (!seen.has(name)) {
+                normalised.push(name);
+                seen.add(name);
+            }
+        });
+
+        return normalised;
+    }
+
+    _orderRowsByConfiguredOrder(rows) {
+        const order = this._resolveVisibleInterfaceState(rows).orderedNames;
+        const orderMap = new Map(order.map((name, index) => [name, index]));
+
+        return rows.slice().sort((left, right) => {
+            const leftIndex = orderMap.has(left.interfaceInfo.name) ? orderMap.get(left.interfaceInfo.name) : Number.MAX_SAFE_INTEGER;
+            const rightIndex = orderMap.has(right.interfaceInfo.name) ? orderMap.get(right.interfaceInfo.name) : Number.MAX_SAFE_INTEGER;
+            return leftIndex - rightIndex;
+        });
     }
 
     _formatRate(bytesPerSecond) {
