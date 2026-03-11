@@ -94,6 +94,7 @@ Current visible behaviour:
 - VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together or hidden individually
 - interface titles default to the current classification plus device name, but can be renamed per interface for cleaner labels such as `LAN` or `LAN (enp3s0)`
+- the Interfaces tab can move interface rows up or down so the desklet keeps the vertical card order you prefer
 - the current primary interface now gets a subtle highlighted row treatment with a small state chip so it stays easy to spot
 - per-session RX and TX totals are shown for each visible row
 - a combined traffic row can be shown for the monitored interfaces, even when some individual rows are hidden
@@ -138,7 +139,6 @@ Once the desklet is implemented, the expected user flow will be:
 
 Current limitations are expected for this early phase:
 
-- interface ordering is still basic
 - per-interface colours and richer layout controls are not implemented yet
 - theme controls are intentionally restrained rather than fully granular
 - very low sampling intervals increase wakeups and redraw frequency, so they are a responsiveness tradeoff rather than a free performance gain

@@ -35,6 +35,7 @@ class InterfaceVisibilityWidget(SettingsWidget):
         self.reset_key = info.get("reset-key", "reset-interface-request")
         self.include_loopback_key = info.get("include-loopback-key", "include-loopback-interfaces")
         self._rows = {}
+        self._ordered_names = []
         self._updating = False
 
         self.set_spacing(6)
@@ -51,7 +52,9 @@ class InterfaceVisibilityWidget(SettingsWidget):
         self._sync_display_from_setting(self.settings.get_value(self.display_key))
 
     def _on_setting_changed(self, _key, value):
+        self._rebuild_interface_rows(value)
         self._sync_visibility_from_setting(value)
+        self._sync_display_from_setting(self.settings.get_value(self.display_key))
 
     def _on_display_setting_changed(self, _key, value):
         self._sync_display_from_setting(value)
@@ -65,8 +68,13 @@ class InterfaceVisibilityWidget(SettingsWidget):
         if self._updating:
             return
 
-        shown = [name for name, row in self._rows.items() if row["toggle"].get_active()]
-        self.settings.set_value(self.state_key, self._serialise_state(shown))
+        self._write_state()
+
+    def _on_move_up_clicked(self, _button, interface_name):
+        self._move_interface(interface_name, -1)
+
+    def _on_move_down_clicked(self, _button, interface_name):
+        self._move_interface(interface_name, 1)
 
     def _on_reset_clicked(self, _button, interface_name):
         request = f"{interface_name}:{int(time.time() * 1000)}"
@@ -79,11 +87,15 @@ class InterfaceVisibilityWidget(SettingsWidget):
         self._write_display_settings(interface_name)
 
     def _sync_visibility_from_setting(self, value):
-        shown_names = set(self._deserialise_state(value))
+        shown_names = set(self._deserialise_state(value, self._ordered_names)["shown"])
 
         self._updating = True
-        for name, row in self._rows.items():
+        for name in self._ordered_names:
+            row = self._rows.get(name)
+            if row is None:
+                continue
             row["toggle"].set_active(name in shown_names)
+        self._update_move_button_sensitivity()
         self._updating = False
 
     def _sync_display_from_setting(self, value):
@@ -96,12 +108,18 @@ class InterfaceVisibilityWidget(SettingsWidget):
             row["show_system_name"].set_active(config.get("showSystemName", True))
         self._updating = False
 
-    def _rebuild_interface_rows(self):
+    def _rebuild_interface_rows(self, state_value=None):
         for child in list(self.interface_list.get_children()):
             self.interface_list.remove(child)
 
         self._rows = {}
         interfaces = self._list_interfaces()
+        state = self._deserialise_state(
+            self.settings.get_value(self.state_key) if state_value is None else state_value,
+            [interface["name"] for interface in interfaces]
+        )
+        self._ordered_names = state["order"]
+        interface_by_name = {interface["name"]: interface for interface in interfaces}
 
         if not interfaces:
             label = Gtk.Label(label=_("No interfaces detected."), halign=Gtk.Align.START)
@@ -111,7 +129,11 @@ class InterfaceVisibilityWidget(SettingsWidget):
             self.show_all()
             return
 
-        for interface in interfaces:
+        for interface_name in self._ordered_names:
+            interface = interface_by_name.get(interface_name)
+            if interface is None:
+                continue
+
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             label = Gtk.Label(label=self._build_interface_label(interface), halign=Gtk.Align.START)
             label.set_xalign(0.0)
@@ -137,6 +159,14 @@ class InterfaceVisibilityWidget(SettingsWidget):
             toggle = Gtk.Switch(halign=Gtk.Align.END, valign=Gtk.Align.CENTER)
             toggle.connect("notify::active", self._on_interface_toggled)
 
+            move_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+            move_up_button = Gtk.Button(label=_("Up"))
+            move_up_button.connect("clicked", self._on_move_up_clicked, interface["name"])
+            move_down_button = Gtk.Button(label=_("Down"))
+            move_down_button.connect("clicked", self._on_move_down_clicked, interface["name"])
+            move_box.pack_start(move_up_button, False, False, 0)
+            move_box.pack_start(move_down_button, False, False, 0)
+
             reset_button = Gtk.Button(label=_("Reset totals"))
             reset_button.connect("clicked", self._on_reset_clicked, interface["name"])
 
@@ -144,6 +174,7 @@ class InterfaceVisibilityWidget(SettingsWidget):
             row.pack_start(label, False, False, 0)
             row.pack_start(name_entry, True, True, 0)
             row.pack_start(show_name_box, False, False, 0)
+            row.pack_start(move_box, False, False, 0)
             row.pack_start(reset_button, False, False, 0)
             self.interface_list.pack_start(row, False, False, 0)
 
@@ -152,8 +183,11 @@ class InterfaceVisibilityWidget(SettingsWidget):
                 "reset": reset_button,
                 "name_entry": name_entry,
                 "show_system_name": show_system_name,
+                "move_up": move_up_button,
+                "move_down": move_down_button,
             }
 
+        self._update_move_button_sensitivity()
         self.show_all()
 
     def _list_interfaces(self):
@@ -190,21 +224,92 @@ class InterfaceVisibilityWidget(SettingsWidget):
             if interface["classification"]["id"] != "loopback"
         ]
 
-    def _serialise_state(self, shown_names):
-        return json.dumps({"shown": shown_names})
+    def _serialise_state(self, shown_names, ordered_names):
+        return json.dumps({"shown": shown_names, "order": ordered_names})
 
-    def _deserialise_state(self, value):
+    def _deserialise_state(self, value, available_names=None):
+        available_names = list(available_names or self._default_visible_names())
+
         if not value:
-            return self._default_visible_names()
+            shown = self._default_visible_names()
+            return {
+                "shown": [name for name in shown if name in available_names],
+                "order": self._normalise_order([], available_names),
+            }
 
         try:
             data = json.loads(value)
             if isinstance(data, dict) and isinstance(data.get("shown"), list):
-                return [name for name in data["shown"] if isinstance(name, str)]
+                shown = [name for name in data["shown"] if isinstance(name, str)]
+                order = data.get("order") if isinstance(data.get("order"), list) else []
+                normalised_order = self._normalise_order(order, available_names)
+                allowed = set(normalised_order)
+                return {
+                    "shown": [name for name in shown if name in allowed],
+                    "order": normalised_order,
+                }
         except ValueError:
             pass
 
-        return [name.strip() for name in value.split(",") if name.strip()]
+        shown = [name.strip() for name in value.split(",") if name.strip()]
+        normalised_order = self._normalise_order(shown, available_names)
+        allowed = set(normalised_order)
+        return {
+            "shown": [name for name in shown if name in allowed],
+            "order": normalised_order,
+        }
+
+    def _normalise_order(self, ordered_names, available_names):
+        normalised = []
+        seen = set()
+
+        for name in ordered_names:
+            if isinstance(name, str) and name in available_names and name not in seen:
+                normalised.append(name)
+                seen.add(name)
+
+        for name in available_names:
+            if name not in seen:
+                normalised.append(name)
+                seen.add(name)
+
+        return normalised
+
+    def _write_state(self):
+        if self._updating:
+            return
+
+        shown = [
+            name
+            for name in self._ordered_names
+            if name in self._rows and self._rows[name]["toggle"].get_active()
+        ]
+        self.settings.set_value(self.state_key, self._serialise_state(shown, self._ordered_names))
+
+    def _move_interface(self, interface_name, direction):
+        if interface_name not in self._ordered_names:
+            return
+
+        current_index = self._ordered_names.index(interface_name)
+        target_index = current_index + direction
+
+        if target_index < 0 or target_index >= len(self._ordered_names):
+            return
+
+        self._ordered_names[current_index], self._ordered_names[target_index] = (
+            self._ordered_names[target_index],
+            self._ordered_names[current_index],
+        )
+        self._write_state()
+
+    def _update_move_button_sensitivity(self):
+        for index, name in enumerate(self._ordered_names):
+            row = self._rows.get(name)
+            if row is None:
+                continue
+
+            row["move_up"].set_sensitive(index > 0)
+            row["move_down"].set_sensitive(index < len(self._ordered_names) - 1)
 
     def _serialise_display_state(self, display_settings):
         if not display_settings:
