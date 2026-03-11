@@ -93,7 +93,7 @@ Current visible behaviour:
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
-- labels, totals, alignment, spacing, and font scale can be adjusted from settings
+- the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
 - sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
 - when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents

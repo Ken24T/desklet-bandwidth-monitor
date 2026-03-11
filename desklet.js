@@ -67,6 +67,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("secondary-text-color", "secondaryTextColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("rx-accent-color", "rxAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("tx-accent-color", "txAccentColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("display-density", "displayDensity", this._syncDisplaySettings.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
@@ -299,9 +300,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _syncDisplaySettings() {
-        const fontScale = this.fontScale || 1;
-        const spacing = this.rowSpacing || 10;
-        const alignment = this._resolveAlignment(this.contentAlignment || "left");
+        this._displaySettings = this._resolveDisplaySettings();
+        const { fontScale, spacing, alignment } = this._displaySettings;
         this._themePalette = this._getThemePalette();
 
         this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
@@ -323,7 +323,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._detailsPopupMetrics.style = `font-size: ${0.94 * fontScale}em; color: ${this._themePalette.primaryText};`;
         this._detailsPopupNote.style = `font-size: ${0.88 * fontScale}em; color: ${this._themePalette.secondaryText};`;
 
-        Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
+        Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, this._displaySettings));
         this._tickSample();
     }
 
@@ -384,6 +384,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _syncRowWidgets(rows, aggregate) {
+        const displaySettings = this._displaySettings || this._resolveDisplaySettings();
         const visibleKeys = [];
         const shownInterfaceNames = this._resolveShownInterfaceNames(rows);
         const visibleRowCount = rows.filter(row => shownInterfaceNames.has(row.interfaceInfo.name)).length;
@@ -402,8 +403,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.set_text(row.footer);
             widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
-                visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                visible: displaySettings.showSparklines,
+                height: this._getSparklineHeight(displaySettings),
                 backgroundColor: this._themePalette.chartBackgroundArray,
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
@@ -431,8 +432,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.set_text(aggregate.footer);
             widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
-                visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                visible: displaySettings.showSparklines,
+                height: this._getSparklineHeight(displaySettings),
                 backgroundColor: this._themePalette.chartBackgroundArray,
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
@@ -456,18 +457,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         if (!this._rowsByKey[key]) {
             this._rowsByKey[key] = this._createRowWidget(title);
             this._panelBox.add_child(this._rowsByKey[key].container);
-            this._applyRowDisplaySettings(
-                this._rowsByKey[key],
-                this.fontScale || 1,
-                this.rowSpacing || 10,
-                this._resolveAlignment(this.contentAlignment || "left")
-            );
+            this._applyRowDisplaySettings(this._rowsByKey[key], this._displaySettings || this._resolveDisplaySettings());
         }
 
         return this._rowsByKey[key];
     }
 
-    _applyRowDisplaySettings(widget, fontScale, spacing, alignment) {
+    _applyRowDisplaySettings(widget, displaySettings) {
+        const { fontScale, spacing, alignment, showLabels, showTotals, showSparklines } = displaySettings;
         const rowPadding = Math.max(8, spacing);
         const palette = this._themePalette || this._getThemePalette();
 
@@ -494,8 +491,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.totalsTitleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
-        widget.sparkline.actor.style = `height: ${Math.max(40, Math.round(43 * fontScale))}px;`;
-        widget.sparkline.actor.visible = this.showSparklines;
+        widget.sparkline.actor.style = `height: ${this._getSparklineHeight(displaySettings)}px;`;
+        widget.sparkline.actor.visible = showSparklines;
 
         [
             { metric: widget.rxValue, accent: palette.rxAccent },
@@ -514,7 +511,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
                 metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`;
             } else {
-                metric.labelWidget.visible = this.showLabels;
+                metric.labelWidget.visible = showLabels;
                 metric.labelWidget.style = isCompact
                     ? `font-size: ${0.8 * fontScale}em; color: ${palette.secondaryText};`
                     : `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
@@ -524,7 +521,61 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             }
         });
 
-        widget.totalsRow.visible = this.showTotals;
+        widget.totalsRow.visible = showTotals;
+    }
+
+    _resolveDisplaySettings() {
+        const preset = this.displayDensity || "comfortable";
+
+        if (preset === "compact") {
+            return {
+                fontScale: 0.92,
+                spacing: 6,
+                alignment: this._resolveAlignment("left"),
+                showLabels: false,
+                showTotals: false,
+                showSparklines: false,
+                sparklineHeight: 36
+            };
+        }
+
+        if (preset === "detailed") {
+            return {
+                fontScale: 1.08,
+                spacing: 12,
+                alignment: this._resolveAlignment("left"),
+                showLabels: true,
+                showTotals: true,
+                showSparklines: true,
+                sparklineHeight: 52
+            };
+        }
+
+        if (preset === "manual") {
+            return {
+                fontScale: this.fontScale || 1,
+                spacing: this.rowSpacing || 10,
+                alignment: this._resolveAlignment(this.contentAlignment || "left"),
+                showLabels: this.showLabels,
+                showTotals: this.showTotals,
+                showSparklines: this.showSparklines,
+                sparklineHeight: Math.max(40, Math.round(43 * (this.fontScale || 1)))
+            };
+        }
+
+        return {
+            fontScale: 1,
+            spacing: 10,
+            alignment: this._resolveAlignment("left"),
+            showLabels: true,
+            showTotals: true,
+            showSparklines: true,
+            sparklineHeight: 43
+        };
+    }
+
+    _getSparklineHeight(displaySettings) {
+        return Math.max(32, Math.round(displaySettings.sparklineHeight || (43 * displaySettings.fontScale)));
     }
 
     _hideAllRows() {

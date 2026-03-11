@@ -40,7 +40,7 @@
     "section-layout-display": {
       "type": "section",
       "title": "Layout and Display",
-      "keys": ["show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
+      "keys": ["display-density", "show-labels", "show-totals", "font-scale", "row-spacing", "content-alignment"]
     },
     "section-theme": {
       "type": "section",
@@ -219,17 +219,31 @@
     "type": "header",
     "description": "Layout and Display"
   },
+  "display-density": {
+    "type": "combobox",
+    "default": "comfortable",
+    "description": "Display density",
+    "tooltip": "Choose a coordinated layout preset, or switch to Manual to tune labels, totals, spacing, and chart visibility yourself.",
+    "options": {
+      "Compact": "compact",
+      "Comfortable": "comfortable",
+      "Detailed": "detailed",
+      "Manual": "manual"
+    }
+  },
   "show-labels": {
     "type": "switch",
     "default": true,
     "description": "Show metric labels",
-    "tooltip": "Display labels such as RX, TX, Total RX, and Total TX."
+    "tooltip": "Display labels such as RX, TX, Total RX, and Total TX.",
+    "dependency": "display-density=manual"
   },
   "show-totals": {
     "type": "switch",
     "default": true,
     "description": "Show session totals",
-    "tooltip": "Display cumulative RX and TX totals for each visible row."
+    "tooltip": "Display cumulative RX and TX totals for each visible row.",
+    "dependency": "display-density=manual"
   },
   "font-scale": {
     "type": "spinbutton",
@@ -239,7 +253,8 @@
     "step": 0.1,
     "units": "x",
     "description": "Font scale",
-    "tooltip": "Scale the desklet text without changing the desklet size."
+    "tooltip": "Scale the desklet text without changing the desklet size.",
+    "dependency": "display-density=manual"
   },
   "row-spacing": {
     "type": "spinbutton",
@@ -249,12 +264,14 @@
     "step": 1,
     "units": "px",
     "description": "Row spacing",
-    "tooltip": "Adjust the space between interface rows."
+    "tooltip": "Adjust the space between interface rows.",
+    "dependency": "display-density=manual"
   },
   "content-alignment": {
     "type": "combobox",
     "default": "left",
     "description": "Content alignment",
+    "dependency": "display-density=manual",
     "options": {
       "Left": "left",
       "Centre": "center",
@@ -269,7 +286,8 @@
     "type": "switch",
     "default": true,
     "description": "Show sparkline charts",
-    "tooltip": "Display history charts for RX and TX below each row."
+    "tooltip": "Display history charts for RX and TX below each row.",
+    "dependency": "display-density=manual"
   },
   "history-length": {
     "type": "spinbutton",
