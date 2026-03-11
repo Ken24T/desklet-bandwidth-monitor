@@ -108,7 +108,7 @@ Current visible behaviour:
 - curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
 - the desklet uses its own themed shell rather than Cinnamon's default outer desklet decoration
 - sparkline charts can be shown or hidden
-- hovering an interface row shows a styled anchored details card with device details, current rates, totals, and any current note or warning for that row
+- hovering an interface row shows a styled anchored details card with device details, totals, and any current note or warning for that row
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
 - the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates

@@ -983,8 +983,6 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             title: row.title,
             metaLines,
             metricLines: [
-                `${_("Current RX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--"}`,
-                `${_("Current TX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--"}`,
                 `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
                 `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
             ],
@@ -999,8 +997,6 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 `${_("Visible interfaces")}: ${visibleRowCount}`
             ],
             metricLines: [
-                `${_("Current RX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--"}`,
-                `${_("Current TX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--"}`,
                 `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
                 `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
             ],
