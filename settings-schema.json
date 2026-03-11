@@ -5,7 +5,7 @@
     "page-general": {
       "type": "page",
       "title": "General",
-      "sections": ["section-general-behaviour"]
+      "sections": ["section-general-behaviour", "section-general-details"]
     },
     "page-interfaces": {
       "type": "page",
@@ -26,6 +26,11 @@
       "type": "section",
       "title": "General",
       "keys": ["sample-seconds", "rate-unit-mode", "show-header"]
+    },
+    "section-general-details": {
+      "type": "section",
+      "title": "Desklet Details",
+      "keys": ["desklet-details"]
     },
     "section-interface-selection": {
       "type": "section",
@@ -81,6 +86,12 @@
     "default": true,
     "description": "Show title",
     "tooltip": "Display the desklet title above the content."
+  },
+  "desklet-details": {
+    "type": "custom",
+    "file": "DeskletInfoWidget.py",
+    "widget": "DeskletInfoWidget",
+    "description": "Technical details"
   },
   "theme-header": {
     "type": "header",

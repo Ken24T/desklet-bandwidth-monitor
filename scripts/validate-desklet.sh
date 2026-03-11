@@ -6,6 +6,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 
 required_files=(
   "desklet.js"
+  "DeskletInfoWidget.py"
   "formatting.js"
   "InterfaceVisibilityWidget.py"
   "interfaces.js"
