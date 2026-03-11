@@ -72,7 +72,7 @@ var InterfaceCatalog = class {
 
         const selected = this._chooseAutoInterface(interfaces, includeTunnelInterfaces);
         const selectionNote = selectionMode === "preferred" && requestedInterface && selected
-            ? `Preferred interface ${requestedInterface} was unavailable. Using ${selected.name}.`
+            ? `Preferred interface ${requestedInterface} isn't available right now. Showing ${selected.name} instead.`
             : null;
 
         return {

@@ -82,7 +82,9 @@ Current visible behaviour:
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
-- individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
+- the optional combined traffic row starts off disabled by default so the first-run view stays focused on individual interfaces
+- individual interface rows can be hidden while the combined traffic row continues to show the total for the monitored interfaces
+- when the combined traffic row is enabled, its visual emphasis can be set to `Subtle`, `Normal`, or `Prominent`
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
 - interface selection mode can be automatic or preferred-interface based
@@ -90,10 +92,15 @@ Current visible behaviour:
 - VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together or hidden individually
 - interface titles default to the current classification plus device name, but can be renamed per interface for cleaner labels such as `LAN` or `LAN (enp3s0)`
+- the current primary interface now gets a subtle highlighted row treatment with a small state chip so it stays easy to spot
 - per-session RX and TX totals are shown for each visible row
-- an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
+- a combined traffic row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
-- labels, totals, alignment, spacing, and font scale can be adjusted from settings
+- the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
+- the Appearance tab can switch into a primary-device focus mode that shows only the currently selected device row, while still allowing the optional combined row alongside it
+- the default `Comfortable` density keeps the first-run view calmer by hiding sparklines until you opt into more detail
+- when sparklines are hidden, the totals shift into a tighter top-row summary so the desklet still looks intentionally compact
+- the Appearance tab now includes a quick restore action for returning to the built-in layout baselines or the default manual layout values
 - sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
 - when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
@@ -101,10 +108,12 @@ Current visible behaviour:
 - curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
 - the desklet uses its own themed shell rather than Cinnamon's default outer desklet decoration
 - sparkline charts can be shown or hidden
-- hovering an interface row shows a callout with device details, current rates, totals, and any current note or warning for that row
+- hovering an interface row shows a styled anchored details card with device details, totals, and any current note or warning for that row
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
-- the desklet waits for a stable sample after counter resets or interface return
+- the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates
+- empty and edge states now use shorter desktop-facing messages for cases such as no visible interfaces, unavailable devices, or temporarily offline links
+- several Configure labels and option names have been simplified so the settings panel reads more like a desktop tool and less like a diagnostic panel
 - obviously implausible spike samples are suppressed when recent history makes them suspect
 - the layout focuses on the interface rows without extra summary text above or below the monitor cards
 

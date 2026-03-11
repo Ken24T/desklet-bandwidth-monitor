@@ -3,8 +3,8 @@ const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Gettext = imports.gettext;
+const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
-const Tooltips = imports.ui.tooltips;
 
 const UUID = "bandwidth-monitor@Ken24T";
 const DeskletManager = imports.ui.deskletManager;
@@ -45,6 +45,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._aggregateTextMetrics = null;
         this._pendingTextMetricsByInterface = {};
         this._pendingAggregateTextMetrics = null;
+        this._detailsPopup = null;
+        this._detailsPopupSource = null;
+        this._detailsPopupHideTimeoutId = 0;
 
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
         this.settings.bind("sample-seconds", "sampleSeconds", this._onSamplingSettingsChanged.bind(this));
@@ -55,6 +58,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("visible-interfaces", "visibleInterfaces", this._onSamplingSettingsChanged.bind(this));
         this.settings.bind("interface-display-settings", "interfaceDisplaySettings", this._onInterfaceDisplaySettingsChanged.bind(this));
         this.settings.bind("show-group-all", "showGroupAll", this._onSamplingSettingsChanged.bind(this));
+        this.settings.bind("aggregate-emphasis", "aggregateEmphasis", this._syncDisplaySettings.bind(this));
         this.settings.bind("reset-interface-request", "resetInterfaceRequest", this._onResetInterfaceRequested.bind(this));
         this.settings.bind("theme-mode", "themeMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("manual-theme-action", "manualThemeAction", this._onManualThemeActionChanged.bind(this));
@@ -64,6 +68,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this.settings.bind("secondary-text-color", "secondaryTextColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("rx-accent-color", "rxAccentColor", this._syncDisplaySettings.bind(this));
         this.settings.bind("tx-accent-color", "txAccentColor", this._syncDisplaySettings.bind(this));
+        this.settings.bind("display-density", "displayDensity", this._syncDisplaySettings.bind(this));
+        this.settings.bind("focus-interface-mode", "focusInterfaceMode", this._syncDisplaySettings.bind(this));
+        this.settings.bind("layout-restore-action", "layoutRestoreAction", this._onLayoutRestoreActionChanged.bind(this));
         this.settings.bind("rate-unit-mode", "rateUnitMode", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-labels", "showLabels", this._syncDisplaySettings.bind(this));
         this.settings.bind("show-totals", "showTotals", this._syncDisplaySettings.bind(this));
@@ -78,7 +85,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._buildShell();
         this._syncHeader();
         this._syncDisplaySettings();
-        this._renderUnavailable("Waiting for an initial monitor sample.");
+        this._renderUnavailable("Looking for an active connection.");
     }
 
     _buildShell() {
@@ -91,6 +98,12 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             style_class: "bandwidth-monitor__title",
             text: _("Bandwidth Monitor")
         });
+        this._statusLabel = new St.Label({
+            style_class: "bandwidth-monitor__status",
+            text: _("Looking for an active connection.")
+        });
+        this._statusLabel.clutter_text.line_wrap = true;
+        this._statusLabel.clutter_text.ellipsize = 0;
 
         this._panelBox = new St.BoxLayout({
             vertical: true,
@@ -98,9 +111,50 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
 
         this._contentBox.add_child(this._titleLabel);
+        this._contentBox.add_child(this._statusLabel);
         this._contentBox.add_child(this._panelBox);
 
         this.setContent(this._contentBox);
+        this._buildDetailsPopup();
+    }
+
+    _buildDetailsPopup() {
+        this._detailsPopup = new BoxPointer.BoxPointer(St.Side.TOP);
+        this._detailsPopup.hide();
+        this._detailsPopup.add_style_class_name("bandwidth-monitor__details-popup");
+
+        this._detailsPopupContent = new St.BoxLayout({
+            vertical: true,
+            style_class: "bandwidth-monitor__details-popup-content"
+        });
+        this._detailsPopupTitle = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-title",
+            text: ""
+        });
+        this._detailsPopupMeta = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-meta",
+            text: ""
+        });
+        this._detailsPopupMetrics = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-metrics",
+            text: ""
+        });
+        this._detailsPopupNote = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-note",
+            text: ""
+        });
+
+        [this._detailsPopupMeta, this._detailsPopupMetrics, this._detailsPopupNote].forEach(label => {
+            label.clutter_text.line_wrap = true;
+            label.clutter_text.ellipsize = 0;
+        });
+
+        this._detailsPopupContent.add_child(this._detailsPopupTitle);
+        this._detailsPopupContent.add_child(this._detailsPopupMeta);
+        this._detailsPopupContent.add_child(this._detailsPopupMetrics);
+        this._detailsPopupContent.add_child(this._detailsPopupNote);
+        this._detailsPopup.bin.set_child(this._detailsPopupContent);
+        Main.layoutManager.addChrome(this._detailsPopup);
     }
 
     _createRowWidget(title) {
@@ -158,12 +212,18 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         const footer = new St.Label({
             style_class: "bandwidth-monitor__row-footer",
-            text: _("Waiting for the first stable sample.")
+            text: _("Getting ready for live traffic.")
         });
         footer.clutter_text.line_wrap = true;
         footer.clutter_text.ellipsize = 0;
         const sparkline = new Sparkline.SparklineView();
-        const tooltip = new Tooltips.Tooltip(container, "");
+
+        container.connect("enter-event", () => {
+            this._showDetailsPopup(container, container._bandwidthMonitorDetailData);
+        });
+        container.connect("leave-event", () => {
+            this._queueHideDetailsPopup();
+        });
 
         container.add_child(header);
         container.add_child(totalsRow);
@@ -179,8 +239,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             liveMetrics,
             totalsRow,
             totalsTitleLabel,
+            totalsInHeader: false,
             sparkline,
-            tooltip,
             footer,
             rxValue,
             txValue,
@@ -251,17 +311,32 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _syncDisplaySettings() {
-        const fontScale = this.fontScale || 1;
-        const spacing = this.rowSpacing || 10;
-        const alignment = this._resolveAlignment(this.contentAlignment || "left");
+        this._displaySettings = this._resolveDisplaySettings();
+        const { fontScale, spacing, alignment } = this._displaySettings;
         this._themePalette = this._getThemePalette();
 
         this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em; color: ${this._themePalette.primaryText};`;
+        this._statusLabel.style = `font-size: ${0.92 * fontScale}em; color: ${this._themePalette.secondaryText};`;
         this._titleLabel.x_align = alignment;
+        this._statusLabel.x_align = alignment;
+        this._detailsPopup.style = `
+            -arrow-background-color: ${this._themePalette.deskletBackground};
+            -arrow-border-color: ${this._themePalette.rowBackground};
+            -arrow-border-width: 1px;
+            -arrow-border-radius: 12px;
+            -arrow-base: 18px;
+            -arrow-rise: 10px;
+            -boxpointer-gap: 8px;
+        `;
+        this._detailsPopupContent.style = `padding: ${Math.max(12, spacing + 2)}px; spacing: ${Math.max(8, spacing - 1)}px; min-width: 240px;`;
+        this._detailsPopupTitle.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${this._themePalette.primaryText};`;
+        this._detailsPopupMeta.style = `font-size: ${0.9 * fontScale}em; color: ${this._themePalette.secondaryText};`;
+        this._detailsPopupMetrics.style = `font-size: ${0.94 * fontScale}em; color: ${this._themePalette.primaryText};`;
+        this._detailsPopupNote.style = `font-size: ${0.88 * fontScale}em; color: ${this._themePalette.secondaryText};`;
 
-        Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
+        Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, this._displaySettings));
         this._tickSample();
     }
 
@@ -303,8 +378,14 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
         this._refreshTextMetricsCache(snapshot);
 
-        if (!snapshot.hasVisibleRows && !this.showGroupAll) {
-            this._renderUnavailable("No visible interfaces are currently selected.");
+        if (!snapshot.availableInterfaces || snapshot.availableInterfaces.length === 0) {
+            this._renderUnavailable("No network devices are available yet.");
+            return true;
+        }
+
+        const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
+        if (shownInterfaceNames.size === 0 && !this.showGroupAll) {
+            this._renderUnavailable("Choose at least one interface in the Interfaces tab.");
             return true;
         }
 
@@ -313,14 +394,29 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _renderUnavailable(reason) {
+        this._hideDetailsPopup(BoxPointer.PopupAnimation.NONE);
+        this._statusLabel.set_text(_(reason));
+        this._statusLabel.visible = true;
         this._hideAllRows();
     }
 
     _renderSnapshot(snapshot) {
+        const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
+        const displayedRows = snapshot.rows.filter(row => row.interfaceInfo && shownInterfaceNames.has(row.interfaceInfo.name));
+        const allDisplayedRowsUnavailable = displayedRows.length > 0 && displayedRows.every(row => !row.available);
+
+        if (allDisplayedRowsUnavailable) {
+            this._statusLabel.set_text(_("Waiting for one of the visible interfaces to come online."));
+            this._statusLabel.visible = true;
+        } else {
+            this._statusLabel.visible = false;
+        }
+
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
     }
 
     _syncRowWidgets(rows, aggregate) {
+        const displaySettings = this._displaySettings || this._resolveDisplaySettings();
         const visibleKeys = [];
         const shownInterfaceNames = this._resolveShownInterfaceNames(rows);
         const visibleRowCount = rows.filter(row => shownInterfaceNames.has(row.interfaceInfo.name)).length;
@@ -329,6 +425,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
             const displayedMetrics = this._getDisplayedMetrics(row, row.interfaceInfo.name);
+            widget.isAggregate = false;
+            widget.isPrimary = Boolean(row.selected);
+            widget.primaryState = row.state;
 
             widget.titleLabel.set_text(row.title);
             widget.stateLabel.set_text(this._formatDisplayState(row.state));
@@ -339,13 +438,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.set_text(row.footer);
             widget.footer.visible = Boolean(row.footer);
             widget.sparkline.update(row.rxHistory, row.txHistory, {
-                visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                visible: displaySettings.showSparklines,
+                height: this._getSparklineHeight(displaySettings),
                 backgroundColor: this._themePalette.chartBackgroundArray,
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
-            widget.tooltip.set_markup(this._buildInterfaceTooltipMarkup(row, displayedMetrics));
+            widget.container._bandwidthMonitorDetailData = this._buildInterfaceDetailsData(row, displayedMetrics);
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
 
             if (widget.container.visible) {
@@ -358,6 +457,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const widget = this._ensureRowWidget(key, aggregate.title);
             visibleKeys.push(key);
             const displayedMetrics = this._getDisplayedMetrics(aggregate, "aggregate");
+            widget.isAggregate = true;
+            widget.isPrimary = false;
+            widget.primaryState = "";
 
             widget.titleLabel.set_text(aggregate.title);
             widget.stateLabel.set_text(this._formatDisplayState(aggregate.state));
@@ -368,13 +470,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             widget.footer.set_text(aggregate.footer);
             widget.footer.visible = Boolean(aggregate.footer);
             widget.sparkline.update(aggregate.rxHistory, aggregate.txHistory, {
-                visible: this.showSparklines,
-                height: Math.max(40, Math.round(43 * (this.fontScale || 1))),
+                visible: displaySettings.showSparklines,
+                height: this._getSparklineHeight(displaySettings),
                 backgroundColor: this._themePalette.chartBackgroundArray,
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
-            widget.tooltip.set_markup(this._buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount));
+            widget.container._bandwidthMonitorDetailData = this._buildAggregateDetailsData(aggregate, displayedMetrics, visibleRowCount);
             widget.container.visible = true;
         }
 
@@ -383,36 +485,74 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 this._rowsByKey[key].container.visible = false;
             }
         });
+
+        if (this._detailsPopupSource && !this._detailsPopupSource.visible) {
+            this._hideDetailsPopup(BoxPointer.PopupAnimation.NONE);
+        }
     }
 
     _ensureRowWidget(key, title) {
         if (!this._rowsByKey[key]) {
             this._rowsByKey[key] = this._createRowWidget(title);
             this._panelBox.add_child(this._rowsByKey[key].container);
-            this._applyRowDisplaySettings(
-                this._rowsByKey[key],
-                this.fontScale || 1,
-                this.rowSpacing || 10,
-                this._resolveAlignment(this.contentAlignment || "left")
-            );
+            this._applyRowDisplaySettings(this._rowsByKey[key], this._displaySettings || this._resolveDisplaySettings());
         }
 
         return this._rowsByKey[key];
     }
 
-    _applyRowDisplaySettings(widget, fontScale, spacing, alignment) {
-        const rowPadding = Math.max(8, spacing);
+    _applyRowDisplaySettings(widget, displaySettings) {
+        const { fontScale, spacing, alignment, showLabels, showTotals, showSparklines } = displaySettings;
         const palette = this._themePalette || this._getThemePalette();
+        const primaryAccent = this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)");
+        const aggregateAccent = this._resolveColor(palette.txAccent, "rgb(255, 191, 87)");
+        const isPrimary = Boolean(widget.isPrimary);
+        const isAggregate = Boolean(widget.isAggregate);
+        const isFocusedPrimary = Boolean(this.focusInterfaceMode) && isPrimary && !isAggregate;
+        const aggregateEmphasis = isAggregate ? (this.aggregateEmphasis || "normal") : "normal";
+        const effectiveFontScale = isFocusedPrimary ? fontScale * 1.12 : fontScale;
+        const effectiveSpacing = isFocusedPrimary ? Math.max(spacing, 12) : spacing;
+        const rowPadding = Math.max(8, effectiveSpacing);
+        const stateText = widget.stateLabel.get_text();
+        const primaryBackground = this._colourToCss(primaryAccent, 0.14);
+        const primaryBorder = this._colourToCss(primaryAccent, 0.78);
+        let rowBackground = palette.rowBackground;
+        let borderColour = "transparent";
+        let titleColour = palette.primaryText;
+        let footerColour = palette.secondaryText;
+        let rowOpacity = 255;
 
-        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${palette.rowBackground};`;
-        widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
-        widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
-        widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
-        widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
-        widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${palette.primaryText};`;
-        widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText};`;
-        widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
-        widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${palette.secondaryText};`;
+        if (isPrimary) {
+            rowBackground = primaryBackground;
+            borderColour = primaryBorder;
+        } else if (isAggregate) {
+            if (aggregateEmphasis === "subtle") {
+                rowBackground = palette.metricBackground;
+                titleColour = palette.secondaryText;
+                rowOpacity = 220;
+            } else if (aggregateEmphasis === "prominent") {
+                rowBackground = this._colourToCss(aggregateAccent, 0.12);
+                borderColour = this._colourToCss(aggregateAccent, 0.6);
+            }
+        }
+
+        this._syncChartlessRowPlacement(widget, showSparklines);
+
+        widget.container.style = `padding: ${rowPadding}px; border-radius: ${isFocusedPrimary ? 14 : 10}px; spacing: ${Math.max(6, effectiveSpacing - 2)}px; background-color: ${rowBackground}; border: 1px solid ${borderColour};`;
+        widget.container.opacity = rowOpacity;
+        widget.header.style = `spacing: ${Math.max(10, effectiveSpacing)}px;`;
+        widget.headerInfo.style = `spacing: ${Math.max(10, effectiveSpacing)}px;`;
+        widget.liveMetrics.style = `spacing: ${Math.max(8, effectiveSpacing - 2)}px;`;
+        widget.totalsRow.style = showSparklines
+            ? `spacing: ${Math.max(12, effectiveSpacing)}px;`
+            : `spacing: ${Math.max(10, effectiveSpacing - 1)}px; padding: 5px 8px; border-radius: 999px; background-color: ${palette.metricBackground};`;
+        widget.titleLabel.style = `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${titleColour};`;
+        widget.stateLabel.style = stateText
+            ? `font-size: ${0.82 * effectiveFontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
+            : "";
+        widget.stateLabel.visible = Boolean(stateText);
+        widget.totalsTitleLabel.style = `font-size: ${0.92 * effectiveFontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
+        widget.footer.style = `font-size: ${0.88 * effectiveFontScale}em; color: ${footerColour};`;
         widget.header.x_align = Clutter.ActorAlign.START;
         widget.headerInfo.x_align = Clutter.ActorAlign.START;
         widget.liveMetrics.x_align = Clutter.ActorAlign.START;
@@ -427,8 +567,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         widget.stateLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.totalsTitleLabel.y_align = Clutter.ActorAlign.CENTER;
         widget.footer.x_align = alignment;
-        widget.sparkline.actor.style = `height: ${Math.max(40, Math.round(43 * fontScale))}px;`;
-        widget.sparkline.actor.visible = this.showSparklines;
+        widget.sparkline.actor.style = `height: ${isFocusedPrimary ? Math.round(this._getSparklineHeight(displaySettings) * 1.18) : this._getSparklineHeight(displaySettings)}px;`;
+        widget.sparkline.actor.visible = showSparklines;
+        widget.totalsTitleLabel.visible = showSparklines;
 
         [
             { metric: widget.rxValue, accent: palette.rxAccent },
@@ -444,20 +585,89 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             metric.container.style = isInline ? "" : `background-color: ${palette.metricBackground};`;
             if (isInline) {
                 metric.labelWidget.visible = true;
-                metric.labelWidget.style = `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
-                metric.valueWidget.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`;
+                metric.labelWidget.style = `font-size: ${0.85 * effectiveFontScale}em; color: ${palette.secondaryText};`;
+                metric.valueWidget.style = `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${accent};`;
             } else {
-                metric.labelWidget.visible = this.showLabels;
+                metric.labelWidget.visible = showLabels;
                 metric.labelWidget.style = isCompact
-                    ? `font-size: ${0.8 * fontScale}em; color: ${palette.secondaryText};`
-                    : `font-size: ${0.85 * fontScale}em; color: ${palette.secondaryText};`;
+                    ? `font-size: ${0.8 * effectiveFontScale}em; color: ${palette.secondaryText};`
+                    : `font-size: ${0.85 * effectiveFontScale}em; color: ${palette.secondaryText};`;
                 metric.valueWidget.style = isCompact
-                    ? `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${accent};`
-                    : `font-size: ${1.05 * fontScale}em; font-weight: bold; color: ${accent};`;
+                    ? `font-size: ${1.0 * effectiveFontScale}em; font-weight: bold; color: ${accent};`
+                    : `font-size: ${1.05 * effectiveFontScale}em; font-weight: bold; color: ${accent};`;
             }
         });
 
-        widget.totalsRow.visible = this.showTotals;
+        widget.totalsRow.visible = showTotals;
+    }
+
+    _syncChartlessRowPlacement(widget, showSparklines) {
+        if (!showSparklines && !widget.totalsInHeader) {
+            widget.container.remove_child(widget.totalsRow);
+            widget.header.add_child(widget.totalsRow);
+            widget.totalsInHeader = true;
+            return;
+        }
+
+        if (showSparklines && widget.totalsInHeader) {
+            widget.header.remove_child(widget.totalsRow);
+            widget.container.insert_child_at_index(widget.totalsRow, 1);
+            widget.totalsInHeader = false;
+        }
+    }
+
+    _resolveDisplaySettings() {
+        const preset = this.displayDensity || "comfortable";
+
+        if (preset === "compact") {
+            return {
+                fontScale: 0.92,
+                spacing: 6,
+                alignment: this._resolveAlignment("left"),
+                showLabels: false,
+                showTotals: false,
+                showSparklines: false,
+                sparklineHeight: 36
+            };
+        }
+
+        if (preset === "detailed") {
+            return {
+                fontScale: 1.08,
+                spacing: 12,
+                alignment: this._resolveAlignment("left"),
+                showLabels: true,
+                showTotals: true,
+                showSparklines: true,
+                sparklineHeight: 52
+            };
+        }
+
+        if (preset === "manual") {
+            return {
+                fontScale: this.fontScale || 1,
+                spacing: this.rowSpacing || 10,
+                alignment: this._resolveAlignment(this.contentAlignment || "left"),
+                showLabels: this.showLabels,
+                showTotals: this.showTotals,
+                showSparklines: this.showSparklines,
+                sparklineHeight: Math.max(40, Math.round(43 * (this.fontScale || 1)))
+            };
+        }
+
+        return {
+            fontScale: 1,
+            spacing: 10,
+            alignment: this._resolveAlignment("left"),
+            showLabels: true,
+            showTotals: true,
+            showSparklines: false,
+            sparklineHeight: 40
+        };
+    }
+
+    _getSparklineHeight(displaySettings) {
+        return Math.max(32, Math.round(displaySettings.sparklineHeight || (43 * displaySettings.fontScale)));
     }
 
     _hideAllRows() {
@@ -590,7 +800,47 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._syncDisplaySettings();
     }
 
+    _onLayoutRestoreActionChanged() {
+        const action = (this.layoutRestoreAction || "none").trim();
+        if (!action || action === "none") {
+            return;
+        }
+
+        if (action === "restore-comfortable") {
+            this.settings.setValue("display-density", "comfortable");
+            this.settings.setValue("focus-interface-mode", false);
+        } else if (action === "restore-compact") {
+            this.settings.setValue("display-density", "compact");
+            this.settings.setValue("focus-interface-mode", false);
+        } else if (action === "restore-detailed") {
+            this.settings.setValue("display-density", "detailed");
+            this.settings.setValue("focus-interface-mode", false);
+        } else if (action === "restore-manual-defaults") {
+            this.settings.setValue("display-density", "manual");
+            this.settings.setValue("focus-interface-mode", false);
+            this.settings.setValue("show-labels", true);
+            this.settings.setValue("show-totals", true);
+            this.settings.setValue("font-scale", 1.0);
+            this.settings.setValue("row-spacing", 10);
+            this.settings.setValue("content-alignment", "left");
+            this.settings.setValue("show-sparklines", true);
+        }
+
+        this.settings.setValue("layout-restore-action", "none");
+        this._syncDisplaySettings();
+    }
+
     _resolveShownInterfaceNames(rows) {
+        if (this.focusInterfaceMode) {
+            const primaryRow = rows.find(row => row.selected && row.interfaceInfo);
+            if (primaryRow) {
+                return new Set([primaryRow.interfaceInfo.name]);
+            }
+
+            const fallbackPrimary = rows.find(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback));
+            return fallbackPrimary ? new Set([fallbackPrimary.interfaceInfo.name]) : new Set();
+        }
+
         const fallback = rows
             .filter(row => row.interfaceInfo && (this.includeLoopbackInterfaces || !row.interfaceInfo.isLoopback))
             .map(row => row.interfaceInfo.name);
@@ -625,71 +875,133 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _formatDisplayState(state) {
-        if (["auto", "up", "unknown"].includes(state)) {
+        if (state === "auto") {
+            return _("Primary");
+        }
+
+        if (state === "preferred") {
+            return _("Preferred");
+        }
+
+        if (state === "down") {
+            return _("Offline");
+        }
+
+        if (state === "lowerlayerdown") {
+            return _("Disconnected");
+        }
+
+        if (state === "dormant") {
+            return _("Idle");
+        }
+
+        if (state === "unavailable") {
+            return _("Unavailable");
+        }
+
+        if (["up", "unknown", "idle"].includes(state)) {
             return "";
         }
 
         return state || "";
     }
 
-    _buildInterfaceTooltipMarkup(row, displayedMetrics) {
-        const lines = [
-            `<b>${this._escapeMarkup(row.title)}</b>`,
-            `${_("Device")}: <b>${this._escapeMarkup(row.interfaceInfo.name)}</b>`,
-            `${_("Type")}: <b>${this._escapeMarkup(row.interfaceInfo.classification.label)}</b>`,
-            `${_("State")}: <b>${this._escapeMarkup(row.interfaceInfo.operState)}</b>`
+    _showDetailsPopup(sourceActor, detailData) {
+        if (!this._detailsPopup || !sourceActor || !detailData || !sourceActor.visible) {
+            return;
+        }
+
+        this._cancelQueuedDetailsPopupHide();
+
+        this._detailsPopupTitle.set_text(detailData.title || "");
+        this._detailsPopupMeta.set_text((detailData.metaLines || []).join("\n"));
+        this._detailsPopupMetrics.set_text((detailData.metricLines || []).join("\n"));
+        this._detailsPopupNote.set_text(detailData.note || "");
+        this._detailsPopupNote.visible = Boolean(detailData.note);
+
+        this._detailsPopupSource = sourceActor;
+        this._detailsPopup.setPosition(sourceActor, 0.5);
+
+        if (!this._detailsPopup.visible) {
+            this._detailsPopup.open(BoxPointer.PopupAnimation.FULL);
+        } else {
+            this._detailsPopup.show();
+        }
+
+        if (this._detailsPopup.get_parent()) {
+            this._detailsPopup.get_parent().set_child_above_sibling(this._detailsPopup, null);
+        }
+    }
+
+    _queueHideDetailsPopup() {
+        this._cancelQueuedDetailsPopupHide();
+        this._detailsPopupHideTimeoutId = Mainloop.timeout_add(160, () => {
+            this._detailsPopupHideTimeoutId = 0;
+            this._hideDetailsPopup();
+            return false;
+        });
+    }
+
+    _cancelQueuedDetailsPopupHide() {
+        if (this._detailsPopupHideTimeoutId > 0) {
+            Mainloop.source_remove(this._detailsPopupHideTimeoutId);
+            this._detailsPopupHideTimeoutId = 0;
+        }
+    }
+
+    _hideDetailsPopup(animation = BoxPointer.PopupAnimation.FULL) {
+        this._cancelQueuedDetailsPopupHide();
+
+        if (!this._detailsPopup) {
+            return;
+        }
+
+        this._detailsPopup.close(animation);
+        this._detailsPopupSource = null;
+    }
+
+    _buildInterfaceDetailsData(row, displayedMetrics) {
+        const metaLines = [
+            `${_("Device")}: ${row.interfaceInfo.name}`,
+            `${_("Type")}: ${row.interfaceInfo.classification.label}`,
+            `${_("State")}: ${row.interfaceInfo.operState}`
         ];
 
         if (row.selected) {
-            lines.push(`${_("Role")}: <b>${this._escapeMarkup(row.state === "preferred" ? _("Preferred interface") : _("Auto-selected interface"))}</b>`);
+            metaLines.push(`${_("Role")}: ${row.state === "preferred" ? _("Preferred device") : _("Automatic choice")}`);
         }
 
         if (row.interfaceInfo.isTunnel) {
-            lines.push(`${_("Tunnel")}: <b>${_("Yes")}</b>`);
+            metaLines.push(`${_("Tunnel")}: ${_("Yes")}`);
         }
 
         if (row.interfaceInfo.isLoopback) {
-            lines.push(`${_("Loopback")}: <b>${_("Yes")}</b>`);
+            metaLines.push(`${_("Loopback")}: ${_("Yes")}`);
         }
 
-        lines.push("");
-        lines.push(`${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`);
-        lines.push(`${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`);
-        lines.push(`${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`);
-        lines.push(`${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`);
-
-        if (row.footer) {
-            lines.push("");
-            lines.push(`${_("Note")}: ${this._escapeMarkup(row.footer)}`);
-        }
-
-        return lines.join("\n");
+        return {
+            title: row.title,
+            metaLines,
+            metricLines: [
+                `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
+                `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
+            ],
+            note: row.footer ? `${_("Note")}: ${row.footer}` : ""
+        };
     }
 
-    _buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount) {
-        const lines = [
-            `<b>${this._escapeMarkup(aggregate.title)}</b>`,
-            `${_("Visible interfaces")}: <b>${visibleRowCount}</b>`,
-            "",
-            `${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`,
-            `${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`,
-            `${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`,
-            `${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`
-        ];
-
-        if (aggregate.footer) {
-            lines.push("");
-            lines.push(`${_("Note")}: ${this._escapeMarkup(aggregate.footer)}`);
-        }
-
-        return lines.join("\n");
-    }
-
-    _escapeMarkup(value) {
-        return String(value || "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+    _buildAggregateDetailsData(aggregate, displayedMetrics, visibleRowCount) {
+        return {
+            title: aggregate.title,
+            metaLines: [
+                `${_("Visible interfaces")}: ${visibleRowCount}`
+            ],
+            metricLines: [
+                `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
+                `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
+            ],
+            note: aggregate.footer ? `${_("Note")}: ${aggregate.footer}` : ""
+        };
     }
 
     _getThemePalette() {
@@ -891,6 +1203,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         if (this._sampleTimeoutId > 0) {
             Mainloop.source_remove(this._sampleTimeoutId);
             this._sampleTimeoutId = 0;
+        }
+
+        this._cancelQueuedDetailsPopupHide();
+
+        if (this._detailsPopup) {
+            this._detailsPopup.destroy();
+            this._detailsPopup = null;
         }
 
         this._monitor.reset();

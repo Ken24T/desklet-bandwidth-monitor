@@ -115,3 +115,20 @@
     font-size: 0.84em;
     color: rgba(255, 255, 255, 0.64);
 }
+
+.bandwidth-monitor__details-popup-content {
+    spacing: 10px;
+}
+
+.bandwidth-monitor__details-popup-title {
+    font-weight: bold;
+}
+
+.bandwidth-monitor__details-popup-meta,
+.bandwidth-monitor__details-popup-note {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.bandwidth-monitor__details-popup-metrics {
+    font-weight: bold;
+}
