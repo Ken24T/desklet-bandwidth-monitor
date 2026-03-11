@@ -82,7 +82,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._buildShell();
         this._syncHeader();
         this._syncDisplaySettings();
-        this._renderUnavailable("Waiting for an initial monitor sample.");
+        this._renderUnavailable("Looking for an active connection.");
     }
 
     _buildShell() {
@@ -95,6 +95,12 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             style_class: "bandwidth-monitor__title",
             text: _("Bandwidth Monitor")
         });
+        this._statusLabel = new St.Label({
+            style_class: "bandwidth-monitor__status",
+            text: _("Looking for an active connection.")
+        });
+        this._statusLabel.clutter_text.line_wrap = true;
+        this._statusLabel.clutter_text.ellipsize = 0;
 
         this._panelBox = new St.BoxLayout({
             vertical: true,
@@ -102,6 +108,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
 
         this._contentBox.add_child(this._titleLabel);
+        this._contentBox.add_child(this._statusLabel);
         this._contentBox.add_child(this._panelBox);
 
         this.setContent(this._contentBox);
@@ -202,7 +209,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         const footer = new St.Label({
             style_class: "bandwidth-monitor__row-footer",
-            text: _("Waiting for the first stable sample.")
+            text: _("Getting ready for live traffic.")
         });
         footer.clutter_text.line_wrap = true;
         footer.clutter_text.ellipsize = 0;
@@ -307,7 +314,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em; color: ${this._themePalette.primaryText};`;
+        this._statusLabel.style = `font-size: ${0.92 * fontScale}em; color: ${this._themePalette.secondaryText};`;
         this._titleLabel.x_align = alignment;
+        this._statusLabel.x_align = alignment;
         this._detailsPopup.style = `
             -arrow-background-color: ${this._themePalette.deskletBackground};
             -arrow-border-color: ${this._themePalette.rowBackground};
@@ -366,7 +375,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._refreshTextMetricsCache(snapshot);
 
         if (!snapshot.hasVisibleRows && !this.showGroupAll) {
-            this._renderUnavailable("No visible interfaces are currently selected.");
+            this._renderUnavailable("Choose at least one interface in the Interfaces tab.");
             return true;
         }
 
@@ -376,10 +385,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
     _renderUnavailable(reason) {
         this._hideDetailsPopup(BoxPointer.PopupAnimation.NONE);
+        this._statusLabel.set_text(_(reason));
+        this._statusLabel.visible = true;
         this._hideAllRows();
     }
 
     _renderSnapshot(snapshot) {
+        this._statusLabel.visible = false;
         this._syncRowWidgets(snapshot.rows, snapshot.aggregate);
     }
 
@@ -569,8 +581,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             alignment: this._resolveAlignment("left"),
             showLabels: true,
             showTotals: true,
-            showSparklines: true,
-            sparklineHeight: 43
+            showSparklines: false,
+            sparklineHeight: 40
         };
     }
 

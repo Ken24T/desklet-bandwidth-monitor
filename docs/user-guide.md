@@ -82,6 +82,7 @@ Current visible behaviour:
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
+- the optional Group All row now starts off by default so the first-run view stays focused on individual interfaces
 - individual interface rows can be hidden while Group All continues to show the combined traffic for the monitored interfaces
 - the desklet shows live RX and TX text values for one interface
 - the desklet discovers available interfaces and shows them in the desklet
@@ -94,6 +95,7 @@ Current visible behaviour:
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
+- the default `Comfortable` density keeps the first-run view calmer by hiding sparklines until you opt into more detail
 - sampling can now be reduced below one second for a faster live refresh, with the tradeoff of higher CPU wakeups at the lowest values
 - when sub-second sampling is used, the sparkline can refresh at the faster cadence while the RX/TX text values remain on a steadier one-second update rhythm
 - the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
@@ -104,7 +106,7 @@ Current visible behaviour:
 - hovering an interface row shows a styled anchored details card with device details, current rates, totals, and any current note or warning for that row
 - sparkline charts use a fixed taller height with steadier scaling for easier at-a-glance comparison during bursts
 - history length and smoothing behaviour can be adjusted
-- the desklet waits for a stable sample after counter resets or interface return
+- the desklet uses calmer warm-up and recovery messages while it waits for enough data to show live rates
 - obviously implausible spike samples are suppressed when recent history makes them suspect
 - the layout focuses on the interface rows without extra summary text above or below the monitor cards
 

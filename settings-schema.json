@@ -205,7 +205,7 @@
   },
   "show-group-all": {
     "type": "switch",
-    "default": true,
+    "default": false,
     "description": "Show Group All Interfaces row",
     "tooltip": "Display the aggregate row for the monitored interfaces, including interfaces whose individual rows are currently hidden."
   },

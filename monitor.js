@@ -104,7 +104,7 @@ var SessionMonitor = class {
                 txRate: 0,
                 totalRxBytes: this._totalsByInterface[interfaceInfo.name]?.rx || 0,
                 totalTxBytes: this._totalsByInterface[interfaceInfo.name]?.tx || 0,
-                footer: `Unable to read counters for ${interfaceInfo.name}.`,
+                footer: `This interface is temporarily unavailable.`,
                 selected: selection.selected && selection.selected.name === interfaceInfo.name,
                 hasRate: false,
                 rxHistory: history.rx,
@@ -141,13 +141,13 @@ var SessionMonitor = class {
                 hasRate = true;
 
                 if (spikeSuppressed) {
-                    footer = "Spike suppressed to avoid displaying an implausible burst sample.";
+                    footer = "Ignoring a suspicious spike to keep the reading steady.";
                 }
             } else {
-                footer = "Counter reset detected. Waiting for the next stable sample.";
+                footer = "Traffic counters reset. Waiting for a fresh reading.";
             }
         } else {
-            footer = "Collecting the second sample needed for live rates and session totals.";
+            footer = "Waiting for one more sample to show live rates.";
         }
 
         this._previousByInterface[interfaceInfo.name] = {
@@ -199,7 +199,7 @@ var SessionMonitor = class {
                 txRate: 0,
                 totalRxBytes: 0,
                 totalTxBytes: 0,
-                footer: "No visible interfaces are currently contributing to the aggregate.",
+                footer: "Group All will appear when a visible interface has traffic data.",
                 rxHistory: history.rx,
                 txHistory: history.tx
             };
