@@ -82,7 +82,7 @@ Current visible behaviour:
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
-- the optional combined traffic row now starts off by default so the first-run view stays focused on individual interfaces
+- the optional combined traffic row starts off disabled by default so the first-run view stays focused on individual interfaces
 - individual interface rows can be hidden while the combined traffic row continues to show the total for the monitored interfaces
 - when the combined traffic row is enabled, its visual emphasis can be set to `Subtle`, `Normal`, or `Prominent`
 - the desklet shows live RX and TX text values for one interface
@@ -94,7 +94,7 @@ Current visible behaviour:
 - interface titles default to the current classification plus device name, but can be renamed per interface for cleaner labels such as `LAN` or `LAN (enp3s0)`
 - the current primary interface now gets a subtle highlighted row treatment with a small state chip so it stays easy to spot
 - per-session RX and TX totals are shown for each visible row
-- an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
+- a combined traffic row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
 - the Appearance tab now includes coordinated `Compact`, `Comfortable`, and `Detailed` density modes, with a `Manual` mode for direct control of labels, totals, alignment, spacing, font scale, and chart visibility
 - the Appearance tab can switch into a primary-device focus mode that shows only the currently selected device row, while still allowing the optional combined row alongside it

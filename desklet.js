@@ -383,7 +383,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             return true;
         }
 
-        if (!snapshot.hasVisibleRows && !this.showGroupAll) {
+        const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
+        if (shownInterfaceNames.size === 0 && !this.showGroupAll) {
             this._renderUnavailable("Choose at least one interface in the Interfaces tab.");
             return true;
         }
@@ -400,8 +401,11 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _renderSnapshot(snapshot) {
-        const allVisibleRowsUnavailable = snapshot.rows.length > 0 && snapshot.rows.every(row => !row.available);
-        if (allVisibleRowsUnavailable) {
+        const shownInterfaceNames = this._resolveShownInterfaceNames(snapshot.rows);
+        const displayedRows = snapshot.rows.filter(row => row.interfaceInfo && shownInterfaceNames.has(row.interfaceInfo.name));
+        const allDisplayedRowsUnavailable = displayedRows.length > 0 && displayedRows.every(row => !row.available);
+
+        if (allDisplayedRowsUnavailable) {
             this._statusLabel.set_text(_("Waiting for one of the visible interfaces to come online."));
             this._statusLabel.visible = true;
         } else {
@@ -804,12 +808,16 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
         if (action === "restore-comfortable") {
             this.settings.setValue("display-density", "comfortable");
+            this.settings.setValue("focus-interface-mode", false);
         } else if (action === "restore-compact") {
             this.settings.setValue("display-density", "compact");
+            this.settings.setValue("focus-interface-mode", false);
         } else if (action === "restore-detailed") {
             this.settings.setValue("display-density", "detailed");
+            this.settings.setValue("focus-interface-mode", false);
         } else if (action === "restore-manual-defaults") {
             this.settings.setValue("display-density", "manual");
+            this.settings.setValue("focus-interface-mode", false);
             this.settings.setValue("show-labels", true);
             this.settings.setValue("show-totals", true);
             this.settings.setValue("font-scale", 1.0);
