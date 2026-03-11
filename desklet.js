@@ -3,8 +3,8 @@ const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Gettext = imports.gettext;
+const BoxPointer = imports.ui.boxpointer;
 const Main = imports.ui.main;
-const Tooltips = imports.ui.tooltips;
 
 const UUID = "bandwidth-monitor@Ken24T";
 const DeskletManager = imports.ui.deskletManager;
@@ -45,6 +45,9 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._aggregateTextMetrics = null;
         this._pendingTextMetricsByInterface = {};
         this._pendingAggregateTextMetrics = null;
+        this._detailsPopup = null;
+        this._detailsPopupSource = null;
+        this._detailsPopupHideTimeoutId = 0;
 
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
         this.settings.bind("sample-seconds", "sampleSeconds", this._onSamplingSettingsChanged.bind(this));
@@ -101,6 +104,46 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._contentBox.add_child(this._panelBox);
 
         this.setContent(this._contentBox);
+        this._buildDetailsPopup();
+    }
+
+    _buildDetailsPopup() {
+        this._detailsPopup = new BoxPointer.BoxPointer(St.Side.TOP);
+        this._detailsPopup.hide();
+        this._detailsPopup.add_style_class_name("bandwidth-monitor__details-popup");
+
+        this._detailsPopupContent = new St.BoxLayout({
+            vertical: true,
+            style_class: "bandwidth-monitor__details-popup-content"
+        });
+        this._detailsPopupTitle = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-title",
+            text: ""
+        });
+        this._detailsPopupMeta = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-meta",
+            text: ""
+        });
+        this._detailsPopupMetrics = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-metrics",
+            text: ""
+        });
+        this._detailsPopupNote = new St.Label({
+            style_class: "bandwidth-monitor__details-popup-note",
+            text: ""
+        });
+
+        [this._detailsPopupMeta, this._detailsPopupMetrics, this._detailsPopupNote].forEach(label => {
+            label.clutter_text.line_wrap = true;
+            label.clutter_text.ellipsize = 0;
+        });
+
+        this._detailsPopupContent.add_child(this._detailsPopupTitle);
+        this._detailsPopupContent.add_child(this._detailsPopupMeta);
+        this._detailsPopupContent.add_child(this._detailsPopupMetrics);
+        this._detailsPopupContent.add_child(this._detailsPopupNote);
+        this._detailsPopup.bin.set_child(this._detailsPopupContent);
+        Main.layoutManager.addChrome(this._detailsPopup);
     }
 
     _createRowWidget(title) {
@@ -163,7 +206,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         footer.clutter_text.line_wrap = true;
         footer.clutter_text.ellipsize = 0;
         const sparkline = new Sparkline.SparklineView();
-        const tooltip = new Tooltips.Tooltip(container, "");
+
+        container.connect("enter-event", () => {
+            this._showDetailsPopup(container, container._bandwidthMonitorDetailData);
+        });
+        container.connect("leave-event", () => {
+            this._queueHideDetailsPopup();
+        });
 
         container.add_child(header);
         container.add_child(totalsRow);
@@ -180,7 +229,6 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             totalsRow,
             totalsTitleLabel,
             sparkline,
-            tooltip,
             footer,
             rxValue,
             txValue,
@@ -260,6 +308,20 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em; color: ${this._themePalette.primaryText};`;
         this._titleLabel.x_align = alignment;
+        this._detailsPopup.style = `
+            -arrow-background-color: ${this._themePalette.deskletBackground};
+            -arrow-border-color: ${this._themePalette.rowBackground};
+            -arrow-border-width: 1px;
+            -arrow-border-radius: 12px;
+            -arrow-base: 18px;
+            -arrow-rise: 10px;
+            -boxpointer-gap: 8px;
+        `;
+        this._detailsPopupContent.style = `padding: ${Math.max(12, spacing + 2)}px; spacing: ${Math.max(8, spacing - 1)}px; min-width: 240px;`;
+        this._detailsPopupTitle.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${this._themePalette.primaryText};`;
+        this._detailsPopupMeta.style = `font-size: ${0.9 * fontScale}em; color: ${this._themePalette.secondaryText};`;
+        this._detailsPopupMetrics.style = `font-size: ${0.94 * fontScale}em; color: ${this._themePalette.primaryText};`;
+        this._detailsPopupNote.style = `font-size: ${0.88 * fontScale}em; color: ${this._themePalette.secondaryText};`;
 
         Object.values(this._rowsByKey).forEach(widget => this._applyRowDisplaySettings(widget, fontScale, spacing, alignment));
         this._tickSample();
@@ -313,6 +375,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _renderUnavailable(reason) {
+        this._hideDetailsPopup(BoxPointer.PopupAnimation.NONE);
         this._hideAllRows();
     }
 
@@ -345,7 +408,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
-            widget.tooltip.set_markup(this._buildInterfaceTooltipMarkup(row, displayedMetrics));
+            widget.container._bandwidthMonitorDetailData = this._buildInterfaceDetailsData(row, displayedMetrics);
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
 
             if (widget.container.visible) {
@@ -374,7 +437,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 rxColor: this._themePalette.rxAccentArray,
                 txColor: this._themePalette.txAccentArray
             });
-            widget.tooltip.set_markup(this._buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount));
+            widget.container._bandwidthMonitorDetailData = this._buildAggregateDetailsData(aggregate, displayedMetrics, visibleRowCount);
             widget.container.visible = true;
         }
 
@@ -383,6 +446,10 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
                 this._rowsByKey[key].container.visible = false;
             }
         });
+
+        if (this._detailsPopupSource && !this._detailsPopupSource.visible) {
+            this._hideDetailsPopup(BoxPointer.PopupAnimation.NONE);
+        }
     }
 
     _ensureRowWidget(key, title) {
@@ -632,64 +699,106 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         return state || "";
     }
 
-    _buildInterfaceTooltipMarkup(row, displayedMetrics) {
-        const lines = [
-            `<b>${this._escapeMarkup(row.title)}</b>`,
-            `${_("Device")}: <b>${this._escapeMarkup(row.interfaceInfo.name)}</b>`,
-            `${_("Type")}: <b>${this._escapeMarkup(row.interfaceInfo.classification.label)}</b>`,
-            `${_("State")}: <b>${this._escapeMarkup(row.interfaceInfo.operState)}</b>`
+    _showDetailsPopup(sourceActor, detailData) {
+        if (!this._detailsPopup || !sourceActor || !detailData || !sourceActor.visible) {
+            return;
+        }
+
+        this._cancelQueuedDetailsPopupHide();
+
+        this._detailsPopupTitle.set_text(detailData.title || "");
+        this._detailsPopupMeta.set_text((detailData.metaLines || []).join("\n"));
+        this._detailsPopupMetrics.set_text((detailData.metricLines || []).join("\n"));
+        this._detailsPopupNote.set_text(detailData.note || "");
+        this._detailsPopupNote.visible = Boolean(detailData.note);
+
+        this._detailsPopupSource = sourceActor;
+        this._detailsPopup.setPosition(sourceActor, 0.5);
+
+        if (!this._detailsPopup.visible) {
+            this._detailsPopup.open(BoxPointer.PopupAnimation.FULL);
+        } else {
+            this._detailsPopup.show();
+        }
+
+        if (this._detailsPopup.get_parent()) {
+            this._detailsPopup.get_parent().set_child_above_sibling(this._detailsPopup, null);
+        }
+    }
+
+    _queueHideDetailsPopup() {
+        this._cancelQueuedDetailsPopupHide();
+        this._detailsPopupHideTimeoutId = Mainloop.timeout_add(160, () => {
+            this._detailsPopupHideTimeoutId = 0;
+            this._hideDetailsPopup();
+            return false;
+        });
+    }
+
+    _cancelQueuedDetailsPopupHide() {
+        if (this._detailsPopupHideTimeoutId > 0) {
+            Mainloop.source_remove(this._detailsPopupHideTimeoutId);
+            this._detailsPopupHideTimeoutId = 0;
+        }
+    }
+
+    _hideDetailsPopup(animation = BoxPointer.PopupAnimation.FULL) {
+        this._cancelQueuedDetailsPopupHide();
+
+        if (!this._detailsPopup) {
+            return;
+        }
+
+        this._detailsPopup.close(animation);
+        this._detailsPopupSource = null;
+    }
+
+    _buildInterfaceDetailsData(row, displayedMetrics) {
+        const metaLines = [
+            `${_("Device")}: ${row.interfaceInfo.name}`,
+            `${_("Type")}: ${row.interfaceInfo.classification.label}`,
+            `${_("State")}: ${row.interfaceInfo.operState}`
         ];
 
         if (row.selected) {
-            lines.push(`${_("Role")}: <b>${this._escapeMarkup(row.state === "preferred" ? _("Preferred interface") : _("Auto-selected interface"))}</b>`);
+            metaLines.push(`${_("Role")}: ${row.state === "preferred" ? _("Preferred interface") : _("Auto-selected interface")}`);
         }
 
         if (row.interfaceInfo.isTunnel) {
-            lines.push(`${_("Tunnel")}: <b>${_("Yes")}</b>`);
+            metaLines.push(`${_("Tunnel")}: ${_("Yes")}`);
         }
 
         if (row.interfaceInfo.isLoopback) {
-            lines.push(`${_("Loopback")}: <b>${_("Yes")}</b>`);
+            metaLines.push(`${_("Loopback")}: ${_("Yes")}`);
         }
 
-        lines.push("");
-        lines.push(`${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`);
-        lines.push(`${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`);
-        lines.push(`${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`);
-        lines.push(`${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`);
-
-        if (row.footer) {
-            lines.push("");
-            lines.push(`${_("Note")}: ${this._escapeMarkup(row.footer)}`);
-        }
-
-        return lines.join("\n");
+        return {
+            title: row.title,
+            metaLines,
+            metricLines: [
+                `${_("Current RX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--"}`,
+                `${_("Current TX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--"}`,
+                `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
+                `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
+            ],
+            note: row.footer ? `${_("Note")}: ${row.footer}` : ""
+        };
     }
 
-    _buildAggregateTooltipMarkup(aggregate, displayedMetrics, visibleRowCount) {
-        const lines = [
-            `<b>${this._escapeMarkup(aggregate.title)}</b>`,
-            `${_("Visible interfaces")}: <b>${visibleRowCount}</b>`,
-            "",
-            `${_("Current RX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--")}</b>`,
-            `${_("Current TX")}: <b>${this._escapeMarkup(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--")}</b>`,
-            `${_("Total RX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalRxBytes))}</b>`,
-            `${_("Total TX")}: <b>${this._escapeMarkup(this._formatBytes(displayedMetrics.totalTxBytes))}</b>`
-        ];
-
-        if (aggregate.footer) {
-            lines.push("");
-            lines.push(`${_("Note")}: ${this._escapeMarkup(aggregate.footer)}`);
-        }
-
-        return lines.join("\n");
-    }
-
-    _escapeMarkup(value) {
-        return String(value || "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+    _buildAggregateDetailsData(aggregate, displayedMetrics, visibleRowCount) {
+        return {
+            title: aggregate.title,
+            metaLines: [
+                `${_("Visible interfaces")}: ${visibleRowCount}`
+            ],
+            metricLines: [
+                `${_("Current RX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--"}`,
+                `${_("Current TX")}: ${displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--"}`,
+                `${_("Total RX")}: ${this._formatBytes(displayedMetrics.totalRxBytes)}`,
+                `${_("Total TX")}: ${this._formatBytes(displayedMetrics.totalTxBytes)}`
+            ],
+            note: aggregate.footer ? `${_("Note")}: ${aggregate.footer}` : ""
+        };
     }
 
     _getThemePalette() {
@@ -891,6 +1000,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         if (this._sampleTimeoutId > 0) {
             Mainloop.source_remove(this._sampleTimeoutId);
             this._sampleTimeoutId = 0;
+        }
+
+        this._cancelQueuedDetailsPopupHide();
+
+        if (this._detailsPopup) {
+            this._detailsPopup.destroy();
+            this._detailsPopup = null;
         }
 
         this._monitor.reset();

@@ -343,3 +343,74 @@ Recommended working model:
 - ask whether to also push the newly merged `main` state to the remote
 
 This keeps the branch history aligned with the implementation phases while still allowing substantial internal slices to use short-lived sub-branches when needed.
+
+## Phase 18: UX Polish Programme
+
+Suggested branch: `phase-18-ux-suggestions`
+
+Purpose: improve the desklet's day-to-day feel through deliberate user-experience refinements rather than broad new functionality.
+
+Delivery rule for this phase:
+
+- Keep all UX slices on the same phase branch.
+- SHIP each completed slice locally as an incremental milestone on the branch.
+- Decide on merge and remote push only after the overall UX programme reaches a satisfactory stopping point.
+
+Planned UX slices:
+
+1. Styled hover details card
+
+- Replace the plain hover tooltip with a richer anchored popout card.
+- Preserve the current informational content while making the interaction feel intentional.
+
+2. Display density modes
+
+- Add `Compact`, `Comfortable`, and `Detailed` density presets.
+- Let density modes coordinate spacing, labels, totals, and sparkline emphasis more cleanly than manual tuning alone.
+
+3. First-run defaults and onboarding polish
+
+- Review default settings for theme, visible rows, sparkline visibility, and sampling cadence.
+- Soften warm-up and startup states so first use feels calm rather than technical.
+
+4. Primary interface emphasis
+
+- Add a subtle but consistent visual treatment for the currently selected primary interface.
+- Keep the emphasis informative rather than noisy.
+
+5. Aggregate row emphasis controls
+
+- Make the `Group All` row feel more intentionally optional.
+- Allow the aggregate to be visually toned down or promoted depending on user preference.
+
+6. Deliberate chartless presentation
+
+- Improve the sparkline-off layout so it looks designed rather than merely reduced.
+- Ensure the desklet remains compact and attractive without charts.
+
+7. Empty and edge-state copy polish
+
+- Rewrite technical or abrupt status wording into shorter user-facing messages.
+- Keep reliability messaging useful without cluttering the main interface.
+
+8. Quick restore actions
+
+- Add fast recovery actions for layout and appearance experimentation.
+- Extend the current "safe reset" concept beyond theme colours where it helps.
+
+9. Single focus interface mode
+
+- Add a mode optimised for users who primarily care about one interface.
+- Keep optional aggregate and hover details compatible with that mode.
+
+10. UX wording and naming pass
+
+- Review labels, option names, tab titles, and preset wording.
+- Reduce unnecessary technical language where simpler wording is clear.
+
+Done criteria for the full programme:
+
+- Hover interactions feel intentional and readable.
+- The desklet supports both compact and information-rich usage styles.
+- First-run behaviour feels sensible without configuration.
+- The settings panel and visible copy read like a polished desktop tool rather than a prototype.
