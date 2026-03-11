@@ -405,6 +405,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const key = `row:${row.interfaceInfo.name}`;
             const widget = this._ensureRowWidget(key, row.title);
             const displayedMetrics = this._getDisplayedMetrics(row, row.interfaceInfo.name);
+            widget.isPrimary = Boolean(row.selected);
+            widget.primaryState = row.state;
 
             widget.titleLabel.set_text(row.title);
             widget.stateLabel.set_text(this._formatDisplayState(row.state));
@@ -434,6 +436,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             const widget = this._ensureRowWidget(key, aggregate.title);
             visibleKeys.push(key);
             const displayedMetrics = this._getDisplayedMetrics(aggregate, "aggregate");
+            widget.isPrimary = false;
+            widget.primaryState = "";
 
             widget.titleLabel.set_text(aggregate.title);
             widget.stateLabel.set_text(this._formatDisplayState(aggregate.state));
@@ -479,14 +483,22 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const { fontScale, spacing, alignment, showLabels, showTotals, showSparklines } = displaySettings;
         const rowPadding = Math.max(8, spacing);
         const palette = this._themePalette || this._getThemePalette();
+        const primaryAccent = this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)");
+        const isPrimary = Boolean(widget.isPrimary);
+        const stateText = widget.stateLabel.get_text();
+        const primaryBackground = this._colourToCss(primaryAccent, 0.14);
+        const primaryBorder = this._colourToCss(primaryAccent, 0.78);
 
-        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${palette.rowBackground};`;
+        widget.container.style = `padding: ${rowPadding}px; border-radius: 10px; spacing: ${Math.max(6, spacing - 2)}px; background-color: ${isPrimary ? primaryBackground : palette.rowBackground}; border: 1px solid ${isPrimary ? primaryBorder : "transparent"};`;
         widget.header.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.headerInfo.style = `spacing: ${Math.max(10, spacing)}px;`;
         widget.liveMetrics.style = `spacing: ${Math.max(8, spacing - 2)}px;`;
         widget.totalsRow.style = `spacing: ${Math.max(12, spacing)}px;`;
         widget.titleLabel.style = `font-size: ${1.0 * fontScale}em; font-weight: bold; color: ${palette.primaryText};`;
-        widget.stateLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText};`;
+        widget.stateLabel.style = stateText
+            ? `font-size: ${0.82 * fontScale}em; color: ${isPrimary ? palette.primaryText : palette.secondaryText}; background-color: ${isPrimary ? primaryBorder : palette.metricBackground}; border-radius: 999px; padding: 3px 8px; font-weight: bold;`
+            : "";
+        widget.stateLabel.visible = Boolean(stateText);
         widget.totalsTitleLabel.style = `font-size: ${0.92 * fontScale}em; color: ${palette.secondaryText}; font-weight: bold;`;
         widget.footer.style = `font-size: ${0.88 * fontScale}em; color: ${palette.secondaryText};`;
         widget.header.x_align = Clutter.ActorAlign.START;
@@ -755,7 +767,15 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     }
 
     _formatDisplayState(state) {
-        if (["auto", "up", "unknown"].includes(state)) {
+        if (state === "auto") {
+            return _("Primary");
+        }
+
+        if (state === "preferred") {
+            return _("Preferred");
+        }
+
+        if (["up", "unknown", "idle"].includes(state)) {
             return "";
         }
 

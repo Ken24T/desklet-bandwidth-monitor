@@ -91,6 +91,7 @@ Current visible behaviour:
 - VPN and tunnel interfaces are shown by default, and the settings panel controls whether they can become the primary auto-selected interface
 - multiple interface rows can be shown together or hidden individually
 - interface titles default to the current classification plus device name, but can be renamed per interface for cleaner labels such as `LAN` or `LAN (enp3s0)`
+- the current primary interface now gets a subtle highlighted row treatment with a small state chip so it stays easy to spot
 - per-session RX and TX totals are shown for each visible row
 - an aggregate Group All Interfaces row can be shown for the monitored interfaces, even when some individual rows are hidden
 - rate units can be shown as bytes per second or bits per second
