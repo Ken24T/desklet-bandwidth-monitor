@@ -24,6 +24,7 @@ package_files = [
 	"metadata.json",
 	"settings-schema.json",
 	"stylesheet.css",
+	"DeskletInfoWidget.py",
 	"InterfaceVisibilityWidget.py",
 	"interfaces.js",
 	"sampler.js",

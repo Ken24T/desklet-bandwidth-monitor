@@ -17,7 +17,7 @@ for candidate in (
 
 gi.require_version("Gtk", "3.0")
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Pango
 
 from JsonSettingsWidgets import *
 
@@ -112,13 +112,27 @@ class InterfaceVisibilityWidget(SettingsWidget):
             return
 
         for interface in interfaces:
-            row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-
-            header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             label = Gtk.Label(label=self._build_interface_label(interface), halign=Gtk.Align.START)
             label.set_xalign(0.0)
-            label.set_hexpand(True)
+            label.set_hexpand(False)
             label.set_line_wrap(False)
+            label.set_ellipsize(Pango.EllipsizeMode.END)
+            label.set_width_chars(24)
+            label.set_max_width_chars(32)
+
+            name_entry = Gtk.Entry()
+            name_entry.set_hexpand(True)
+            name_entry.set_placeholder_text(interface["classification"]["label"])
+            name_entry.connect("changed", self._on_name_changed, interface["name"])
+
+            show_name_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            show_name_label = Gtk.Label(label=_("Show device name"), halign=Gtk.Align.START)
+            show_name_label.set_xalign(0.0)
+            show_system_name = Gtk.Switch(halign=Gtk.Align.END, valign=Gtk.Align.CENTER)
+            show_system_name.connect("notify::active", self._on_show_system_name_toggled, interface["name"])
+            show_name_box.pack_start(show_name_label, False, False, 0)
+            show_name_box.pack_start(show_system_name, False, False, 0)
 
             toggle = Gtk.Switch(halign=Gtk.Align.END, valign=Gtk.Align.CENTER)
             toggle.connect("notify::active", self._on_interface_toggled)
@@ -126,27 +140,11 @@ class InterfaceVisibilityWidget(SettingsWidget):
             reset_button = Gtk.Button(label=_("Reset totals"))
             reset_button.connect("clicked", self._on_reset_clicked, interface["name"])
 
-            header.pack_start(label, True, True, 0)
-            header.pack_start(toggle, False, False, 0)
-            header.pack_start(reset_button, False, False, 0)
-
-            controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            name_entry = Gtk.Entry()
-            name_entry.set_hexpand(True)
-            name_entry.set_placeholder_text(interface["classification"]["label"])
-            name_entry.connect("changed", self._on_name_changed, interface["name"])
-
-            show_name_label = Gtk.Label(label=_("Show device name"), halign=Gtk.Align.START)
-            show_name_label.set_xalign(0.0)
-            show_system_name = Gtk.Switch(halign=Gtk.Align.END, valign=Gtk.Align.CENTER)
-            show_system_name.connect("notify::active", self._on_show_system_name_toggled, interface["name"])
-
-            controls.pack_start(name_entry, True, True, 0)
-            controls.pack_start(show_name_label, False, False, 0)
-            controls.pack_start(show_system_name, False, False, 0)
-
-            row.pack_start(header, False, False, 0)
-            row.pack_start(controls, False, False, 0)
+            row.pack_start(toggle, False, False, 0)
+            row.pack_start(label, False, False, 0)
+            row.pack_start(name_entry, True, True, 0)
+            row.pack_start(show_name_box, False, False, 0)
+            row.pack_start(reset_button, False, False, 0)
             self.interface_list.pack_start(row, False, False, 0)
 
             self._rows[interface["name"]] = {

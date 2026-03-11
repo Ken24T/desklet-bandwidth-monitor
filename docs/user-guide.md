@@ -77,9 +77,11 @@ Current visible behaviour:
 - the desklet can display a header
 - the desklet exposes a tabbed Cinnamon settings panel for sampling, interface selection, appearance, and chart options
 - the settings panel is split across native `General`, `Interfaces`, `Appearance`, and `Charts` tabs with related settings grouped on each page
+- the General tab now includes a read-only details section with the installed version, UUID, local Cinnamon paths, and counters source for troubleshooting
 - the settings panel now includes theme controls for `Dark`, `Light`, and `Custom` modes
 - in `Custom` mode, the settings panel can apply curated palettes and restore the default dark or light custom colour baselines
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
+- each interface control row keeps the visibility toggle, label, custom name, device-name option, and reset action on a single line for faster scanning
 - the Interfaces section also lets each row define a friendly display name and decide whether the technical device name remains visible beside it
 - loopback interfaces are hidden from the Interfaces section by default and can be exposed with a dedicated include option when needed
 - the optional combined traffic row starts off disabled by default so the first-run view stays focused on individual interfaces
