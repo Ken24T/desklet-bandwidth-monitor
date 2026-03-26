@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-03-26T03:42:32Z",
+  "updatedAt": "2026-03-26T23:07:55Z",
   "workflow": "handover",
   "project": {
     "name": "desklet-bandwidth-monitor",
@@ -8,12 +8,12 @@
   },
   "resume": {
     "branch": "infrastructure/reconcile-tctbp",
-    "commit": "bbef21d319646e5d55a1a763bfa982f2c61b680d",
+    "commit": "1e41306895053b8308bd30a79b6e6967a1cc20fe",
     "remoteRef": "origin/infrastructure/reconcile-tctbp"
   },
   "handover": {
     "metadataBranch": "tctbp/handover-state",
-    "checkpointCommitCreated": true,
+    "checkpointCommitCreated": false,
     "version": "1.5.0",
     "latestTag": "1.5.0"
   }
