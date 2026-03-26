@@ -5,7 +5,7 @@ This repository is a native Cinnamon/GJS desklet project for monitoring network 
 ## Working Context
 
 - Treat the specification in `.github/bandwidth_monitor_desklet_specification.md` as the product source of truth.
-- Treat `.github/TCTBP Agent.md` and `.github/TCTBP.json` as the workflow source of truth for SHIP, publish, handover, resume, deploy, status, abort, and branching.
+- Treat `.github/TCTBP Agent.md` and `.github/TCTBP.json` as the workflow source of truth for SHIP, checkpoint, publish, handover, resume, deploy, status, abort, and branching.
 - This is a solo-developer repository. Do not assume Pull Requests, review gates, or team branching conventions unless explicitly requested.
 - The repository may be local-first for parts of its life cycle, but this repo currently has `origin` configured and should keep local and remote state aligned when workflow triggers are used.
 
@@ -66,7 +66,7 @@ python3 -m json.tool settings-schema.json >/dev/null
 
 ## Workflow Expectations
 
-- If the user asks to ship, publish, handover, resume, deploy, status, abort, or branch, follow `.github/TCTBP Agent.md` and `.github/TCTBP.json`.
+- If the user asks to ship, checkpoint, publish, handover, resume, deploy, status, abort, or branch, follow `.github/TCTBP Agent.md` and `.github/TCTBP.json`.
 - For this repo, `metadata.json` is the version source and release tags are bare semver tags such as `1.5.0` rather than `v1.5.0`.
 - Treat `./scripts/validate-desklet.sh` as the normal verification gate and reserve `./scripts/package-desklet.sh` for explicit packaging or deploy work.
 - For implementation work, prefer one branch per phase, merge completed phase branches into `main`, use short-lived sub-branches only for substantial internal slices, and ask before pushing the merged phase result when the workflow requires it.
