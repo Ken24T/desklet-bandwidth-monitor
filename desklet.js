@@ -210,7 +210,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         });
         const stateLabel = new St.Label({
             style_class: "bandwidth-monitor__row-state",
-            text: _("planned")
+            text: ""
         });
 
         headerInfo.add_child(titleLabel);
@@ -608,6 +608,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
             widget.titleLabel.set_text(row.title);
             widget.stateLabel.set_text(this._formatDisplayState(row.state));
+            this._applyRowDisplaySettings(widget, displaySettings);
             widget.rxValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--");
             widget.txValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--");
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalRxBytes));
@@ -640,6 +641,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
 
             widget.titleLabel.set_text(aggregate.title);
             widget.stateLabel.set_text(this._formatDisplayState(aggregate.state));
+            this._applyRowDisplaySettings(widget, displaySettings);
             widget.rxValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.rxRate) : "--");
             widget.txValue.valueWidget.set_text(displayedMetrics.hasRate ? this._formatRate(displayedMetrics.txRate) : "--");
             widget.totalRxValue.valueWidget.set_text(this._formatBytes(displayedMetrics.totalRxBytes));
