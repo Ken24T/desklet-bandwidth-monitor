@@ -13,28 +13,53 @@ Use [TCTBP Agent.md](TCTBP%20Agent.md) for the full workflow rules and guard rai
 
 ## Repo Gates
 
+Repo gates for this repository:
+
 - Format check: `python3 -m json.tool metadata.json >/dev/null && python3 -m json.tool settings-schema.json >/dev/null`
 - Test: `./scripts/validate-desklet.sh`
 - Lint: `./scripts/validate-desklet.sh`
 - Normal build gate: `./scripts/validate-desklet.sh`
 - Release/package build: `./scripts/package-desklet.sh`
 
+Release/package build rule:
+
+- `./scripts/package-desklet.sh` is for explicit packaging or deployment work.
+- Normal SHIP uses `./scripts/validate-desklet.sh` by default.
+
 ## Version And Tags
 
 - Version source: `metadata.json` field `version`
-- Tag format: `X.Y.Z`
+- Tag format: plain semver, for example `1.5.0`
+- Do not normalise this repo to `v1.5.0` tags unless explicitly requested.
 
 ## Triggers
 
 ### `ship` / `ship please` / `shipping` / `prepare release`
 
+Purpose:
 Formal source release workflow.
 
-- preflights repo state
-- runs verification gates
-- assesses docs impact
-- bumps version when required
-- commits, tags, and pushes
+Attempts to:
+
+- preflight the repo state
+- show a concise origin-vs-local snapshot table before mutating anything
+- run verification gates
+- confirm zero problems
+- assess docs impact
+- bump version when required
+- commit the release changes
+- create the version tag
+- push the current branch
+
+Notes:
+
+- starts with a four-column table: `Origin`, `Local`, `Status`, `Action(s)`
+- uses `./scripts/validate-desklet.sh`, not `./scripts/package-desklet.sh`, as the default SHIP gate
+- patch bump behaviour is controlled by `versioning.patchEveryShip` and `versioning.patchEveryShipForDocsInfrastructureOnly` in `.github/TCTBP.json`
+- in this repo, docs-only and infrastructure-only ships do not bump by default
+- first ship on a `phase-` or `feature/` branch gets a minor bump
+- may publish a clean branch that has no upstream yet by creating the upstream on the first ship push
+- stops if the branch is dirty, behind origin, diverged from origin, or on detached `HEAD`
 
 ### `publish` / `publish please`
 
@@ -58,9 +83,35 @@ Create a durable local-only checkpoint commit on the current branch without rele
 
 Safely checkpoint and publish the current work branch, then refresh `tctbp/handover-state` so another machine can resume deterministically.
 
+Notes:
+
+- can reuse a recent matching standalone `checkpoint` commit instead of creating another one
+- fast-forwards when behind and clean
+- stops on divergence or ambiguity
+- ends with a concise four-column table and a one-line completion summary
+
 ### `resume` / `resume please`
 
-Safely restore the intended work branch at the start of a session by consulting handover metadata first.
+Safely restore the intended work branch at the start of a session by consulting handover metadata first, preserving local unpublished work first when a safe branch switch would otherwise strand it.
+
+Attempts to:
+
+- fetch and inspect remote state
+- read the handover metadata branch first
+- prefer metadata over arbitrary branch-recency guesses
+- detect when switching would strand local unpublished work on the current branch
+- ask to preserve that local work locally before switching when that case is safe
+- create a local tracking branch from the intended remote branch when needed
+- fast-forward the selected clean branch when origin is ahead
+- stop on ambiguity, divergence, conflicts, or any case that would require publication
+
+Notes:
+
+- may create a local-only checkpoint or rescue branch after confirmation to preserve local work before switching
+- does not publish
+- does not update metadata
+- does not create a release
+- stops if preserve-local handling would be unsafe, if switching branches would still be destructive, or if local/remote state is ambiguous
 
 ### `deploy` / `deploy please`
 

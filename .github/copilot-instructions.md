@@ -36,6 +36,8 @@ The desklet repo's TCTBP runtime and workflow surface lives in:
 
 Keep these files aligned when the workflow or runtime entry points change.
 
+The consolidated cross-repo application prompt is expected to be discoverable through the explicit local-only trigger `reconcile-tctbp <absolute-target-repo-path>`.
+
 ## Implementation Defaults
 
 - Prefer a pure Cinnamon-native implementation using GJS.

@@ -67,6 +67,18 @@ Supported workflow triggers are:
 
 Do not treat a bare `tctbp` request as implicit permission to mutate repository state.
 
+## Docs/Infra-Only Detection
+
+A changeset is docs-only or infrastructure-only only when every changed file matches the repo rules in `.github/TCTBP.json`, for example:
+
+- `*.md`, `*.txt`, `*.rst`
+- `docs/**`
+- `.github/**`
+- `packaging/**`
+- `LICENSE*`, `CHANGELOG*`, `CONTRIBUTING*`
+
+Build manifests, desklet metadata, settings schema, and runtime styling are not docs-only by default just because they are text files.
+
 ## Publish Workflow
 
 Trigger: `publish` / `publish please`
@@ -113,6 +125,7 @@ Key rules:
 - validate the requested branch name before mutating anything in next-branch mode
 - stop if the target branch already exists locally or on origin in next-branch mode
 - stop if the source branch is dirty and SHIP is declined
+- if the source branch is dirty and SHIP is declined, recommend `checkpoint`, then `publish` or `handover`, before retrying `branch`
 - stop if the source branch is ahead, behind, diverged, or otherwise unpublished relative to its upstream
 - fast-forward local `main` when clean and behind origin
 - ask for explicit confirmation before merging a non-default branch back into `main`
@@ -154,6 +167,7 @@ Key safety rules:
 
 - stop if `HEAD` is detached
 - preserve dirty unpublished work through a durable checkpoint when necessary
+- a recent matching standalone `checkpoint` commit may be reused instead of creating another one
 - allow fast-forward only when local is clean and behind
 - stop on divergence rather than guessing
 - never auto-merge or auto-rebase as part of reconciliation
@@ -163,16 +177,20 @@ Key safety rules:
 
 Trigger: `resume` / `resume please`
 
-Purpose: restore the intended work branch at start of day by consulting handover metadata first, switching safely when needed, and reconciling only through non-destructive checkout and fast-forward operations.
+Purpose: restore the intended work branch at start of day by consulting handover metadata first, preserving current local unpublished work when a safe branch switch would otherwise strand it, and reconciling only through non-destructive checkout and fast-forward operations.
 
 Key safety rules:
 
 - stop if `HEAD` is detached
 - consult metadata before arbitrary branch-recency inference
 - prefer metadata over an arbitrary clean non-default branch
+- detect when switching to the handed-over branch would strand current local unpublished work
+- ask for confirmation before creating any local-only preserve step during `resume`
+- preserve dirty current-branch work with a local checkpoint before switching when that is safe
+- preserve a clean-but-ahead current branch with a local rescue branch before switching when that is safe
 - create a local tracking branch from remote when the intended branch is published but missing locally
-- allow fast-forward only when local is clean and behind
-- stop when local is ahead, diverged, or ambiguous instead of publishing during `resume`
+- allow fast-forward only when the selected branch is clean and behind
+- stop when preserve-local handling would require publication, when the selected branch is ahead or diverged, or when the state is otherwise ambiguous
 
 ## Status Workflow
 
