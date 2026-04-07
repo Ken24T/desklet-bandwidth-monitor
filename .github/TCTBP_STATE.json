@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-04-07T01:11:45Z",
+  "updatedAt": "2026-04-07T01:37:43Z",
   "workflow": "handover",
   "project": {
     "name": "desklet-bandwidth-monitor",
     "defaultBranch": "main"
   },
   "resume": {
-    "branch": "main",
+    "branch": "infrastructure/windows-deployment",
     "commit": "adff6b20a038fac1bcedb2332a873cf5351b0f4e",
-    "remoteRef": "origin/main"
+    "remoteRef": "origin/infrastructure/windows-deployment"
   },
   "handover": {
     "metadataBranch": "tctbp/handover-state",
