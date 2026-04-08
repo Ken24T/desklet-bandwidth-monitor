@@ -78,7 +78,7 @@ Current visible behaviour:
 - the desklet exposes a tabbed Cinnamon settings panel for sampling, interface selection, appearance, and chart options
 - the settings panel is split across native `General`, `Interfaces`, `Appearance`, and `Charts` tabs with related settings grouped on each page
 - the General tab now includes a read-only details section with the installed version, UUID, local Cinnamon paths, and counters source for troubleshooting
-- the settings panel now includes theme controls for `Dark`, `Light`, and `Custom` modes
+- the settings panel now includes theme controls for `Dark`, `Light`, `Transparent`, and `Custom` modes
 - in `Custom` mode, the settings panel can apply curated palettes and restore the default dark or light custom colour baselines
 - the Interfaces section provides one row per known interface with its own show toggle and Reset totals button
 - each interface control row keeps the visibility toggle, label, custom name, device-name option, and reset action on a single line for faster scanning
@@ -111,7 +111,8 @@ Current visible behaviour:
 - Adaptive mode now waits for a short sustained rise before switching to the faster refresh rate, so one brief spike is less likely to trigger a faster polling cadence
 - Adaptive decisions now follow the busier direction of traffic rather than simply adding RX and TX together, so low background traffic in one direction is less likely to force the faster refresh rate on its own
 - When busy traffic drops sharply back to calm levels, Adaptive mode now returns to the base refresh rate sooner instead of holding the faster cadence for the full cooldown every time, with the quicker fallback capped at about two seconds in the current prototype
-- the desklet can switch between curated dark and light themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
+- the desklet can switch between curated dark, light, and transparent themes, or use a restrained custom colour set for desklet background, row background, text, and RX/TX accents
+- the transparent theme keeps the outer desklet shell clear so more of the desktop shows through, while the traffic rows and hover details card stay readable with translucent surfaces
 - custom theme colours can be recovered quickly by applying a curated palette or resetting back to the dark or light baseline colour sets
 - curated custom palettes now include blue, green, yellow, red, and pale blue starting points for quick visual changes
 - the desklet uses its own themed shell rather than Cinnamon's default outer desklet decoration

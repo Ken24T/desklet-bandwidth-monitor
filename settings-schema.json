@@ -148,6 +148,7 @@
     "options": {
       "Dark": "dark",
       "Light": "light",
+      "Transparent": "transparent",
       "Custom": "manual"
     }
   },

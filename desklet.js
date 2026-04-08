@@ -341,6 +341,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._displaySettings = this._resolveDisplaySettings();
         const { fontScale, spacing, alignment } = this._displaySettings;
         this._themePalette = this._getThemePalette();
+        const popupBackground = this._themePalette.popupBackground || this._themePalette.deskletBackground;
+        const popupBorder = this._themePalette.popupBorder || this._themePalette.rowBackground;
 
         this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
         this._panelBox.style = `spacing: ${spacing}px;`;
@@ -349,8 +351,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._titleLabel.x_align = alignment;
         this._statusLabel.x_align = alignment;
         this._detailsPopup.style = `
-            -arrow-background-color: ${this._themePalette.deskletBackground};
-            -arrow-border-color: ${this._themePalette.rowBackground};
+            -arrow-background-color: ${popupBackground};
+            -arrow-border-color: ${popupBorder};
             -arrow-border-width: 1px;
             -arrow-border-radius: 12px;
             -arrow-base: 18px;
@@ -1268,6 +1270,21 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             });
         }
 
+        if (themeMode === "transparent") {
+            return this._buildPresetPalette({
+                deskletBackground: "rgba(18, 22, 29, 0)",
+                rowBackground: "rgba(18, 22, 29, 0.28)",
+                metricBackground: "rgba(255, 255, 255, 0.08)",
+                chartBackground: "rgba(255, 255, 255, 0.05)",
+                primaryText: "rgb(248, 250, 252)",
+                secondaryText: "rgba(225, 231, 239, 0.88)",
+                rxAccent: "rgb(115, 198, 255)",
+                txAccent: "rgb(255, 191, 87)",
+                popupBackground: "rgba(18, 22, 29, 0.92)",
+                popupBorder: "rgba(255, 255, 255, 0.12)"
+            });
+        }
+
         if (themeMode === "manual" || themeMode === "custom") {
             return this._buildPresetPalette({
                 deskletBackground: this._colourToCss(this._resolveColor(this.deskletBackgroundColor, "rgb(24, 28, 36)"), 0.94),
@@ -1359,6 +1376,8 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _buildPresetPalette(palette) {
         return {
             ...palette,
+            popupBackground: palette.popupBackground || palette.deskletBackground,
+            popupBorder: palette.popupBorder || palette.rowBackground,
             chartBackgroundArray: this._colourToArray(this._resolveColor(palette.chartBackground, "rgba(255, 255, 255, 0.05)")),
             rxAccentArray: this._colourToArray(this._resolveColor(palette.rxAccent, "rgb(115, 198, 255)"), 0.95),
             txAccentArray: this._colourToArray(this._resolveColor(palette.txAccent, "rgb(255, 191, 87)"), 0.95)
