@@ -142,7 +142,13 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         this._contentBox.add_child(this._panelBox);
 
         this.setContent(this._contentBox);
+        this._syncDeskletChrome();
         this._buildDetailsPopup();
+    }
+
+    _syncDeskletChrome() {
+        this.actor.style = "background-color: transparent; border: 0; box-shadow: none;";
+        this.setHeader("");
     }
 
     _buildDetailsPopup() {
@@ -333,7 +339,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
     _syncHeader() {
         const title = _("Bandwidth Monitor");
 
-        this.setHeader(this.showHeader ? title : "");
+        this._syncDeskletChrome();
         this._titleLabel.visible = this.showHeader;
     }
 
@@ -344,6 +350,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
         const popupBackground = this._themePalette.popupBackground || this._themePalette.deskletBackground;
         const popupBorder = this._themePalette.popupBorder || this._themePalette.rowBackground;
 
+        this._syncDeskletChrome();
         this._contentBox.style = `spacing: ${spacing}px; padding: 12px; border-radius: 16px; background-color: ${this._themePalette.deskletBackground};`;
         this._panelBox.style = `spacing: ${spacing}px;`;
         this._titleLabel.style = `font-size: ${1.15 * fontScale}em; color: ${this._themePalette.primaryText};`;
