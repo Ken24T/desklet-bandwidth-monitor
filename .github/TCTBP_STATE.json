@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-04-07T01:37:43Z",
+  "updatedAt": "2026-04-08T06:14:36Z",
   "workflow": "handover",
   "project": {
     "name": "desklet-bandwidth-monitor",
     "defaultBranch": "main"
   },
   "resume": {
-    "branch": "infrastructure/windows-deployment",
-    "commit": "adff6b20a038fac1bcedb2332a873cf5351b0f4e",
-    "remoteRef": "origin/infrastructure/windows-deployment"
+    "branch": "features/ui-ux-themes",
+    "commit": "e780135a1dd4f63a14d4d6703c998da9a3e9d297",
+    "remoteRef": "origin/features/ui-ux-themes"
   },
   "handover": {
     "metadataBranch": "tctbp/handover-state",
     "checkpointCommitCreated": false,
-    "version": "1.5.0",
-    "latestTag": "1.5.0"
+    "version": "1.5.1",
+    "latestTag": "1.5.1"
   }
 }
