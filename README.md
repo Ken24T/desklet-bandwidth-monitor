@@ -20,6 +20,7 @@ This repository now contains a working Cinnamon desklet implementation with:
 - TCTBP workflow policy: `.github/TCTBP Agent.md`
 - TCTBP workflow configuration: `.github/TCTBP.json`
 - Implementation plan: `docs/implementation-plan.md`
+- GNOME extension port plan: `docs/gnome-extension-plan.md`
 - User guide: `docs/user-guide.md`
 
 ## Intended Initial Project Shape
@@ -64,3 +65,5 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 ## Next Step
 
 The current branch focus is release readiness: keep the package flow, validation, and user-facing documentation aligned with the implementation state.
+
+The `port/gnome-extenstion` branch now also carries a GNOME-specific planning document in `docs/gnome-extension-plan.md` for the first extension porting slices.
