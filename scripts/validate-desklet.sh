@@ -58,4 +58,10 @@ gjs --version >/dev/null
 
 "$repo_root/scripts/package-desklet.sh" --dry-run >/dev/null
 
+if [[ -f "$repo_root/gnome-extension/metadata.json" ]]; then
+  "$repo_root/scripts/validate-gnome-extension.sh" >/dev/null
+  echo "Desklet and GNOME extension validation passed."
+  exit 0
+fi
+
 echo "Desklet scaffold validation passed."

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.bandwidth-monitor" path="/org/gnome/shell/extensions/bandwidth-monitor/">
+    <key name="sample-seconds" type="i">
+      <default>1</default>
+      <summary>Refresh interval</summary>
+      <description>Seconds between bandwidth samples for the panel summary and dropdown.</description>
+    </key>
+    <key name="selection-mode" type="s">
+      <default>'auto'</default>
+      <summary>Primary interface mode</summary>
+      <description>Choose whether the extension follows the best active interface automatically or a preferred interface name.</description>
+    </key>
+    <key name="preferred-interface" type="s">
+      <default>''</default>
+      <summary>Preferred interface</summary>
+      <description>Interface name to use when primary interface mode is set to preferred.</description>
+    </key>
+    <key name="include-tunnel-interfaces" type="b">
+      <default>false</default>
+      <summary>Allow tunnel interfaces</summary>
+      <description>Allow VPN or tunnel devices to become the primary interface in automatic mode.</description>
+    </key>
+    <key name="include-loopback-interfaces" type="b">
+      <default>false</default>
+      <summary>Show loopback interfaces</summary>
+      <description>Include loopback devices in the dropdown rows.</description>
+    </key>
+    <key name="show-aggregate" type="b">
+      <default>true</default>
+      <summary>Show aggregate row</summary>
+      <description>Display a combined traffic row in the dropdown and use it for the panel summary when more than one interface is active.</description>
+    </key>
+    <key name="rate-unit-mode" type="s">
+      <default>'auto-bytes'</default>
+      <summary>Rate unit mode</summary>
+      <description>Choose whether traffic rates are shown with byte or bit scaling.</description>
+    </key>
+  </schema>
+</schemalist>

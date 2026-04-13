@@ -1,0 +1,43 @@
+.bandwidth-monitor-indicator-box {
+    spacing: 6px;
+}
+
+.bandwidth-monitor-indicator-label {
+    font-weight: 700;
+    min-width: 14em;
+}
+
+.bandwidth-monitor-menu-item {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.bandwidth-monitor-menu-item-aggregate {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 4px;
+    padding-top: 8px;
+}
+
+.bandwidth-monitor-menu-title,
+.bandwidth-monitor-menu-row-title {
+    font-weight: 700;
+}
+
+.bandwidth-monitor-menu-subtitle,
+.bandwidth-monitor-menu-row-secondary,
+.bandwidth-monitor-menu-row-state,
+.bandwidth-monitor-menu-note {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.bandwidth-monitor-menu-header {
+    spacing: 12px;
+}
+
+.bandwidth-monitor-menu-row-metrics {
+    margin-top: 2px;
+}
+
+.bandwidth-monitor-menu-note {
+    margin-top: 4px;
+}
