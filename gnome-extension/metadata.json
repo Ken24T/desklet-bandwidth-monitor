@@ -6,6 +6,5 @@
     "50"
   ],
   "gettext-domain": "bandwidth-monitor-gnome@Ken24T",
-  "settings-schema": "org.gnome.shell.extensions.bandwidth-monitor",
-  "version": 1
+  "settings-schema": "org.gnome.shell.extensions.bandwidth-monitor"
 }
