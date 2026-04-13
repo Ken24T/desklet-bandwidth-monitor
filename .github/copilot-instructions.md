@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-This repository is a native Cinnamon/GJS desklet project for monitoring network bandwidth.
+This repository is a bandwidth monitor project with a native Cinnamon/GJS desklet and a GNOME Shell extension MVP on the `port/gnome-extenstion` branch.
 
 ## Working Context
 
@@ -18,6 +18,7 @@ This repository is a native Cinnamon/GJS desklet project for monitoring network 
 | `settings-schema.json` | Cinnamon settings schema |
 | `stylesheet.css` | Desklet styling |
 | `monitor.js`, `sampler.js`, `interfaces.js`, `formatting.js`, `sparkline.js` | Monitoring and rendering support modules |
+| `gnome-extension/` | GNOME Shell 50 extension entrypoint, prefs, schema, styles, and shared modules |
 | `scripts/` | Validation, packaging, and local installation scripts |
 | `docs/` | User-facing and implementation documentation |
 | `.github/` | Product specification, Copilot guidance, and TCTBP runtime/workflow files |
@@ -41,12 +42,14 @@ The consolidated cross-repo application prompt is expected to be discoverable th
 ## Implementation Defaults
 
 - Prefer a pure Cinnamon-native implementation using GJS.
+- On `port/gnome-extenstion`, prefer a GNOME Shell 50 extension implementation under `gnome-extension/` and keep shared monitoring logic shell-neutral where practical.
 - Aim for a small, modular desklet structure centred on `desklet.js`, `metadata.json`, `settings-schema.json`, and `stylesheet.css`.
 - Read network counters from `/sys/class/net/<interface>/statistics/` unless there is a concrete Cinnamon-specific constraint that forces a different source.
 - Keep data collection, rate calculation, history buffering, and rendering concerns separated even when a slice is small.
 - Use a soft file-size guideline rather than a hard cap: target about 300 lines for most focused modules, and allow `desklet.js` to grow further only when it remains cohesive.
 - Optimise for correctness and low overhead over cleverness.
 - For local Cinnamon installation, prefer a real copied desklet deployment into `~/.local/share/cinnamon/desklets/<uuid>` via `./scripts/install-local-desklet.sh`; do not rely on symlink-based installs.
+- For local GNOME installation on the GNOME branch, prefer a real copied extension deployment into `~/.local/share/gnome-shell/extensions/<uuid>` via `./scripts/install-gnome-extension.sh`.
 
 ## Development Commands
 
@@ -56,6 +59,9 @@ python3 -m json.tool settings-schema.json >/dev/null
 ./scripts/validate-desklet.sh
 ./scripts/package-desklet.sh
 ./scripts/install-local-desklet.sh
+./scripts/validate-gnome-extension.sh
+./scripts/package-gnome-extension.sh
+./scripts/install-gnome-extension.sh
 ```
 
 ## Expected Delivery Style
@@ -70,16 +76,16 @@ python3 -m json.tool settings-schema.json >/dev/null
 
 - If the user asks to ship, checkpoint, publish, handover, resume, deploy, status, abort, or branch, follow `.github/TCTBP Agent.md` and `.github/TCTBP.json`.
 - For this repo, `metadata.json` is the version source and release tags are bare semver tags such as `1.5.0` rather than `v1.5.0`.
-- Treat `./scripts/validate-desklet.sh` as the normal verification gate and reserve `./scripts/package-desklet.sh` for explicit packaging or deploy work.
+- Treat `./scripts/validate-desklet.sh` as the normal verification gate and reserve `./scripts/package-desklet.sh` and `./scripts/package-gnome-extension.sh` for explicit packaging or deploy work.
 - For implementation work, prefer one branch per phase, merge completed phase branches into `main`, use short-lived sub-branches only for substantial internal slices, and ask before pushing the merged phase result when the workflow requires it.
 
 ## Docs Impact Defaults
 
-- Review `README.md`, `docs/user-guide.md`, and `.github/bandwidth_monitor_desklet_specification.md` for user-visible or UI behaviour changes.
-- Review `metadata.json`, `settings-schema.json`, `scripts/install-local-desklet.sh`, and `scripts/package-desklet.sh` for packaging, settings, or installation changes.
+- Review `README.md`, `docs/user-guide.md`, `docs/gnome-extension-user-guide.md`, and `.github/bandwidth_monitor_desklet_specification.md` for user-visible or UI behaviour changes.
+- Review `metadata.json`, `settings-schema.json`, `gnome-extension/metadata.json`, `scripts/install-local-desklet.sh`, `scripts/package-desklet.sh`, `scripts/install-gnome-extension.sh`, and `scripts/package-gnome-extension.sh` for packaging, settings, or installation changes.
 - Review `docs/implementation-plan.md` when roadmap or implementation-status expectations change.
 
 ## Near-Term Project Direction
 
-- Keep release packaging, validation, and user-facing documentation aligned with the live desklet implementation state.
-- Continue improving the desklet in coherent vertical slices rather than speculative framework work.
+- Keep release packaging, validation, and user-facing documentation aligned with the live desklet and GNOME extension implementation state.
+- Continue improving the desklet and GNOME extension in coherent vertical slices rather than speculative framework work.

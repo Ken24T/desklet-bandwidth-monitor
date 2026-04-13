@@ -19,11 +19,11 @@ Repo gates for this repository:
 - Test: `./scripts/validate-desklet.sh`
 - Lint: `./scripts/validate-desklet.sh`
 - Normal build gate: `./scripts/validate-desklet.sh`
-- Release/package build: `./scripts/package-desklet.sh`
+- Release/package builds: `./scripts/package-desklet.sh` and `./scripts/package-gnome-extension.sh`
 
 Release/package build rule:
 
-- `./scripts/package-desklet.sh` is for explicit packaging or deployment work.
+- `./scripts/package-desklet.sh` and `./scripts/package-gnome-extension.sh` are for explicit packaging or deployment work.
 - Normal SHIP uses `./scripts/validate-desklet.sh` by default.
 
 ## Version And Tags
@@ -125,6 +125,10 @@ Repo-specific target:
   - build: `./scripts/package-desklet.sh`
   - install: `./scripts/install-local-desklet.sh`
   - validate: confirm `~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json` exists
+- `gnome-user-local`
+  - build: `./scripts/package-gnome-extension.sh`
+  - install: `./scripts/install-gnome-extension.sh`
+  - validate: confirm `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/metadata.json` and `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/schemas/gschemas.compiled` exist
 
 ### `status` / `status please`
 
@@ -158,6 +162,9 @@ Repo-specific docs commonly reviewed:
 - `settings-schema.json`
 - `scripts/install-local-desklet.sh`
 - `scripts/package-desklet.sh`
+- `scripts/install-gnome-extension.sh`
+- `scripts/package-gnome-extension.sh`
+- `docs/gnome-extension-user-guide.md`
 - `.github/TCTBP Agent.md`
 - `.github/TCTBP Cheatsheet.md`
 - `.github/copilot-instructions.md`
@@ -169,7 +176,7 @@ Repo-specific docs commonly reviewed:
 - Need to sync a clean branch without release or metadata side effects: use `publish`
 - Need to stop on one machine and resume on another safely: use `handover`
 - Need to restore the last handed-over branch before starting work: use `resume`
-- Need the local Cinnamon install updated: use `deploy`
+- Need the local Cinnamon or GNOME install updated: use `deploy`
 - Need a quick repo state check: use `status`
 - Need to recover from a partial workflow state: use `abort`
 - Need to close out the current branch or start the next one: use `branch` or `branch <new-branch-name>`

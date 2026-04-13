@@ -20,7 +20,7 @@ Quick reference: see [TCTBP Cheatsheet.md](TCTBP%20Cheatsheet.md).
 
 ## Repo Profile
 
-Desklet Bandwidth Monitor is a solo-developer Cinnamon/GJS desklet repository with local installation and release packaging scripts.
+Desklet Bandwidth Monitor is a solo-developer bandwidth monitor repository with a Cinnamon desklet, a GNOME Shell extension MVP branch, and local installation and release packaging scripts.
 
 Repo-specific operational values that must be preserved:
 
@@ -32,7 +32,7 @@ Repo-specific operational values that must be preserved:
 - test gate: `./scripts/validate-desklet.sh`
 - normal build gate: `./scripts/validate-desklet.sh`
 - release/package build: `./scripts/package-desklet.sh`
-- deploy target: `cinnamon-user-local` via `./scripts/install-local-desklet.sh`
+- deploy targets: `cinnamon-user-local` via `./scripts/install-local-desklet.sh`; `gnome-user-local` via `./scripts/install-gnome-extension.sh`
 - user-facing docs commonly reviewed: `README.md`, `docs/user-guide.md`, `.github/bandwidth_monitor_desklet_specification.md`, and `docs/implementation-plan.md`
 - branch preference for implementation work: phase-oriented branches that normally merge back into `main` before the next phase branch is created
 - locale: Australian English for user-facing text and comments
@@ -232,14 +232,14 @@ Abort must inspect first, propose recovery second, and execute only explicitly a
 
 Trigger: `deploy` / `deploy please`
 
-Purpose: build a runtime-ready artefact or install the desklet safely for local Cinnamon use.
+Purpose: build a runtime-ready artefact or install the desklet or GNOME extension safely for explicit local use.
 
 General rules:
 
 - stop if `HEAD` is detached
 - require a clean working tree
 - require a synced branch
-- use `./scripts/package-desklet.sh` for explicit packaging or deploy work
+- use the target-specific package script for explicit packaging or deploy work
 - review packaging and install docs impact before mutating deployment targets
 - validate the deployed result rather than merely copying files
 
@@ -250,6 +250,12 @@ Repo-specific deploy target:
 - build: `./scripts/package-desklet.sh`
 - install: `./scripts/install-local-desklet.sh`
 - post-deploy validation: confirm `~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json` exists
+
+### `gnome-user-local`
+
+- build: `./scripts/package-gnome-extension.sh`
+- install: `./scripts/install-gnome-extension.sh`
+- post-deploy validation: confirm `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/metadata.json` and `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/schemas/gschemas.compiled` exist
 
 If the requested deployment target is not one of these explicit cases, stop and ask rather than guessing.
 
@@ -302,7 +308,7 @@ Tagging rules:
 Docs impact rules:
 
 - `README.md`, `docs/user-guide.md`, and `.github/bandwidth_monitor_desklet_specification.md` for user-visible or UI changes
-- `scripts/install-local-desklet.sh`, `scripts/package-desklet.sh`, and `metadata.json` for install, packaging, or release metadata changes
+- `scripts/install-local-desklet.sh`, `scripts/package-desklet.sh`, `scripts/install-gnome-extension.sh`, `scripts/package-gnome-extension.sh`, `docs/gnome-extension-user-guide.md`, `gnome-extension/metadata.json`, and `metadata.json` for install, packaging, or release metadata changes
 - `docs/implementation-plan.md` for roadmap or release-status changes
 
 ## Repo-Specific Preservation Notes
@@ -312,8 +318,9 @@ When updating these workflow files, preserve the following local choices unless 
 - bare semver release tags such as `1.5.0`
 - `metadata.json` as version source
 - `./scripts/validate-desklet.sh` as the default SHIP verification gate
-- `./scripts/package-desklet.sh` only for explicit packaging or deploy work
+- `./scripts/package-desklet.sh` and `./scripts/package-gnome-extension.sh` only for explicit packaging or deploy work
 - local Cinnamon installation via `./scripts/install-local-desklet.sh`
+- local GNOME installation via `./scripts/install-gnome-extension.sh`
 - phase-oriented branch naming for implementation work
 - docs paths under `docs/` and `.github/bandwidth_monitor_desklet_specification.md`
 - Australian English conventions

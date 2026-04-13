@@ -8,7 +8,7 @@
   },
   "project": {
     "name": "desklet-bandwidth-monitor",
-    "description": "Native Cinnamon/GJS desklet for displaying live network bandwidth activity with local installation and release packaging support.",
+    "description": "Bandwidth monitor project with a native Cinnamon/GJS desklet and a GNOME Shell extension MVP, both using local installation and release packaging support.",
     "defaultBranch": "main",
     "versionFiles": ["metadata.json"],
     "changelogFormat": "keep-a-changelog",
@@ -343,7 +343,7 @@
       },
       {
         "changeType": "packaging-or-metadata",
-        "review": ["README.md", "docs/user-guide.md", "scripts/install-local-desklet.sh", "scripts/package-desklet.sh", "metadata.json"]
+        "review": ["README.md", "docs/user-guide.md", "docs/gnome-extension-user-guide.md", "scripts/install-local-desklet.sh", "scripts/package-desklet.sh", "scripts/install-gnome-extension.sh", "scripts/package-gnome-extension.sh", "gnome-extension/metadata.json", "metadata.json"]
       },
       {
         "changeType": "roadmap-or-status",
@@ -358,21 +358,32 @@
   },
   "deploy": {
     "preferredTriggers": ["deploy", "deploy please"],
-    "purpose": "Deploy is repo-specific and should be used only for explicit local Cinnamon installation of the desklet.",
+    "purpose": "Deploy is repo-specific and should be used only for explicit local installation of either the Cinnamon desklet or the GNOME Shell extension.",
     "stopIfDetachedHead": true,
     "requireCleanTree": true,
     "requireSyncedBranch": true,
     "requireShipFirst": false,
     "requireRollbackPlanForDestructiveDeploy": true,
-    "buildCommand": "./scripts/package-desklet.sh",
+    "buildCommand": null,
     "migrationCommand": null,
     "targets": {
       "cinnamon-user-local": {
         "description": "Install or update the desklet in the current user's local Cinnamon desklets directory.",
+        "buildCommand": "./scripts/package-desklet.sh",
         "installCommand": "./scripts/install-local-desklet.sh",
         "postDeployChecks": [
           "test -d ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T",
           "test -f ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json"
+        ]
+      },
+      "gnome-user-local": {
+        "description": "Install or update the GNOME Shell extension in the current user's local extensions directory.",
+        "buildCommand": "./scripts/package-gnome-extension.sh",
+        "installCommand": "./scripts/install-gnome-extension.sh",
+        "postDeployChecks": [
+          "test -d ~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T",
+          "test -f ~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/metadata.json",
+          "test -f ~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T/schemas/gschemas.compiled"
         ]
       }
     }
