@@ -54,4 +54,10 @@ PY
 glib-compile-schemas "$extensions_dir/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["uuid"])' "$extension_root/metadata.json")/schemas"
 
 echo "Installed GNOME extension into the local user extensions directory."
-echo "Use GNOME Extensions or gnome-extensions to enable bandwidth-monitor-gnome@Ken24T when you are ready."
+
+if gnome-extensions info bandwidth-monitor-gnome@Ken24T >/dev/null 2>&1; then
+    echo "GNOME sees the extension already. Use GNOME Extensions or gnome-extensions to enable bandwidth-monitor-gnome@Ken24T when you are ready."
+else
+    echo "The files are installed, but this running GNOME session has not indexed the new extension yet."
+    echo "If it does not appear in Extensions immediately, log out and back in, then enable bandwidth-monitor-gnome@Ken24T."
+fi

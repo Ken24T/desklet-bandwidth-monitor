@@ -65,6 +65,8 @@ This copies the extension into:
 
 After installation, enable it from a GNOME Shell session using the Extensions app or `gnome-extensions enable bandwidth-monitor-gnome@Ken24T`.
 
+If the extension does not appear immediately in the Extensions app after the first local install, log out and back in. On this Ubuntu GNOME setup, the running session may not index newly copied user extensions until the session refreshes.
+
 ## Packaging
 
 Create a zip archive for the GNOME extension:
@@ -74,6 +76,8 @@ Create a zip archive for the GNOME extension:
 ```
 
 The archive is written into `dist/` and includes the compiled schema.
+
+The archive is packaged in the format expected by `gnome-extensions install`, with `metadata.json` at the root of the zip.
 
 ## Current Behaviour
 

@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="bandwidth-monitor-gnome-") as temp_dir:
 
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
         for path in stage_root.rglob("*"):
-            archive.write(path, Path(uuid) / path.relative_to(stage_root))
+            archive.write(path, path.relative_to(stage_root))
 
 print(archive_path)
 PY
