@@ -243,7 +243,7 @@ class BandwidthIndicator extends PanelMenu.Button {
             return;
         }
 
-        if (!summaryRow.hasRate) {
+        if (!this._rowHasLiveData(summaryRow)) {
             this._summaryLabel.text = 'Waiting';
             return;
         }
@@ -264,6 +264,16 @@ class BandwidthIndicator extends PanelMenu.Button {
         }
 
         return availableRows[0] || (sample.aggregate.available ? sample.aggregate : null);
+    }
+
+    _rowHasLiveData(row) {
+        if (row.hasRate)
+            return true;
+
+        return row.rxRate > 0
+            || row.txRate > 0
+            || row.totalRxBytes > 0
+            || row.totalTxBytes > 0;
     }
 
     _renderMenu(sample) {

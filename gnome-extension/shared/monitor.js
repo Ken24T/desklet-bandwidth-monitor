@@ -172,6 +172,7 @@ export class SessionMonitor {
             const history = this._appendAggregateHistory(0, 0, historyLength, smoothingMode);
             return {
                 available: false,
+                hasRate: false,
                 title: 'Combined traffic',
                 state: 'idle',
                 rxRate: 0,
@@ -202,6 +203,13 @@ export class SessionMonitor {
         });
 
         const history = this._appendAggregateHistory(aggregate.rxRate, aggregate.txRate, historyLength, smoothingMode);
+        aggregate.hasRate = rows.some(row =>
+            row.hasRate
+            || row.rxRate > 0
+            || row.txRate > 0
+            || row.totalRxBytes > 0
+            || row.totalTxBytes > 0
+        );
         aggregate.rxHistory = history.rx;
         aggregate.txHistory = history.tx;
         return aggregate;
