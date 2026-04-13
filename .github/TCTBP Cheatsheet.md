@@ -77,6 +77,7 @@ Create a durable local-only checkpoint commit on the current branch without rele
 - stages current tracked and non-ignored untracked changes
 - creates a clearly marked non-release local commit
 - ends with a concise four-column table covering the previous HEAD, new checkpoint commit, resulting working-tree state, sync state, and explicit local-only outcome
+- emits that checkpoint table as a standalone Markdown block with a blank line before and after it
 - does not push, create a tag, or update handover metadata
 
 ### `handover` / `handover please`
@@ -88,7 +89,8 @@ Notes:
 - can reuse a recent matching standalone `checkpoint` commit instead of creating another one
 - fast-forwards when behind and clean
 - stops on divergence or ambiguity
-- ends with a concise four-column table and a one-line completion summary
+- ends with a concise four-column table emitted as a standalone Markdown block with a blank line before and after it
+- adds a one-line completion summary after the table
 
 ### `resume` / `resume please`
 
@@ -127,6 +129,9 @@ Repo-specific target:
 ### `status` / `status please`
 
 Read-only operator snapshot of branch state, sync status, tags, version source, and recommended next steps.
+
+- first user-visible output block must be the fuller four-column table using `Origin`, `Local`, `Status`, and `Action(s)`
+- emit that status table as a standalone Markdown block with a blank line before and after it
 
 ### `abort`
 

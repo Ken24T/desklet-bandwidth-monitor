@@ -110,6 +110,7 @@ Key rules:
 - do not run heavyweight verification gates as a blocker for this workflow
 - if diagnostics are already available, they may be reported for awareness only
 - end with a concise four-column table covering the previous `HEAD`, new checkpoint commit, resulting working-tree state, upstream sync state, and explicit local-only outcome
+- emit that checkpoint table as a standalone Markdown block with a blank line before and after it
 - never push, create a tag, bump version, update handover metadata, or change branches as part of `checkpoint`
 
 ## Branch Workflow
@@ -172,6 +173,8 @@ Key safety rules:
 - stop on divergence rather than guessing
 - never auto-merge or auto-rebase as part of reconciliation
 - update the metadata branch using a secondary worktree or another non-destructive mechanism
+- end with a concise four-column handover summary table emitted as a standalone Markdown block with a blank line before and after it
+- add a short completion line after the table confirming the handed-over branch and commit
 
 ## Resume Workflow
 
@@ -201,7 +204,8 @@ Purpose: provide a read-only operator snapshot of the repo.
 Behaviour:
 
 - fetch remote state first
-- render a four-column table using `Origin`, `Local`, `Status`, and `Action(s)`
+- the first user-visible output block must be a four-column table using `Origin`, `Local`, `Status`, and `Action(s)`
+- emit that status table as a standalone Markdown block with a blank line before and after it
 - include branch/upstream state, head commit, default-branch state, tag state, ahead/behind counts, working tree state, version source, metadata state, and whether `resume`, `publish`, `ship`, or `handover` is recommended
 - include whether `checkpoint` is recommended when the working tree is dirty and the safest next step is local preservation
 - never mutate the repo from `status`
