@@ -2,6 +2,8 @@
 
 This guide is the user-facing reference for the Bandwidth Monitor desklet.
 
+For the GNOME Shell extension MVP on the `port/gnome-extenstion` branch, use `docs/gnome-extension-user-guide.md` instead. This file remains the Cinnamon desklet guide.
+
 It should be updated whenever user-visible behaviour, settings, installation steps, or limitations change.
 
 ## Status

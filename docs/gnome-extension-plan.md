@@ -4,6 +4,23 @@ This document captures the initial plan for porting the Cinnamon bandwidth monit
 
 The goal is not to force a 1:1 desktop-widget clone. The goal is to preserve the monitoring value of the current project while adapting the UI, settings, packaging, and runtime model to GNOME Shell 50.
 
+## Current Implementation Status
+
+The current `port/gnome-extenstion` branch now includes a first working MVP slice with:
+
+- a GNOME Shell 50 extension scaffold in `gnome-extension/`
+- shell-neutral monitoring modules under `gnome-extension/shared/`
+- a top-bar indicator with a multi-interface dropdown
+- basic GNOME preferences backed by GSettings
+- local install, packaging, and validation scripts for the extension
+
+Still intentionally pending after this first implementation slice:
+
+- sparkline charts in GNOME
+- per-interface visibility editing in preferences
+- richer appearance controls and theme customisation
+- deeper parity with the Cinnamon desklet layout system
+
 ## Product Direction
 
 Recommended target: a top-bar indicator with a dropdown menu.

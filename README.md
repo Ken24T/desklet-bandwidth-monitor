@@ -1,6 +1,6 @@
-# Desklet Bandwidth Monitor
+# Bandwidth Monitor
 
-A native Cinnamon desklet for displaying live network bandwidth activity with a lightweight, desktop-first UI.
+A bandwidth monitor project with a mature Cinnamon desklet and a new GNOME Shell 50 extension MVP on the `port/gnome-extenstion` branch.
 
 ## Current Status
 
@@ -13,6 +13,15 @@ This repository now contains a working Cinnamon desklet implementation with:
 - sparkline history charts
 - release packaging support
 
+This branch also now contains a first GNOME Shell extension MVP with:
+
+- a top-bar indicator with live RX and TX summary text
+- a multi-interface dropdown with session totals
+- automatic or preferred-interface selection
+- a combined traffic row option
+- GNOME preferences for refresh rate, interface selection, and rate units
+- local install, validation, and packaging scripts for GNOME Shell 50
+
 ## Key Documents
 
 - Product specification: `.github/bandwidth_monitor_desklet_specification.md`
@@ -21,24 +30,27 @@ This repository now contains a working Cinnamon desklet implementation with:
 - TCTBP workflow configuration: `.github/TCTBP.json`
 - Implementation plan: `docs/implementation-plan.md`
 - GNOME extension port plan: `docs/gnome-extension-plan.md`
+- GNOME extension user guide: `docs/gnome-extension-user-guide.md`
 - User guide: `docs/user-guide.md`
 
-## Intended Initial Project Shape
+## Cinnamon Project Shape
 
-The desklet is expected to start with a small native Cinnamon/GJS structure built around:
+The Cinnamon desklet remains built around:
 
 - `desklet.js`
 - `metadata.json`
 - `settings-schema.json`
 - `stylesheet.css`
 
-## Current Scaffold
+## Current Tooling
 
-The repository now includes the Phase 0 desklet scaffold with those root-level files and a minimal validation command:
+The repository now includes a combined validation command:
 
 ```bash
 ./scripts/validate-desklet.sh
 ```
+
+When the GNOME extension files are present, that validation command also runs the GNOME extension validation checks.
 
 For local Cinnamon testing during development:
 
@@ -54,6 +66,26 @@ For release packaging:
 ./scripts/package-desklet.sh
 ```
 
+For local GNOME Shell testing during development:
+
+```bash
+./scripts/install-gnome-extension.sh
+```
+
+This installs a real local extension copy into `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T` and compiles the bundled schema.
+
+For GNOME extension packaging:
+
+```bash
+./scripts/package-gnome-extension.sh
+```
+
+For GNOME-specific validation only:
+
+```bash
+./scripts/validate-gnome-extension.sh
+```
+
 ## Workflow Notes
 
 This repo uses a local-first, solo-developer TCTBP workflow.
@@ -62,8 +94,6 @@ This repo uses a local-first, solo-developer TCTBP workflow.
 - Shipping and handoff rules live in the `.github/TCTBP*` files.
 - Versioning should eventually be driven by `metadata.json` once the desklet scaffold exists.
 
-## Next Step
+## Current Branch Focus
 
-The current branch focus is release readiness: keep the package flow, validation, and user-facing documentation aligned with the implementation state.
-
-The `port/gnome-extenstion` branch now also carries a GNOME-specific planning document in `docs/gnome-extension-plan.md` for the first extension porting slices.
+The `port/gnome-extenstion` branch now carries a working GNOME Shell extension MVP plus the supporting planning and documentation for the next refinement slices.
