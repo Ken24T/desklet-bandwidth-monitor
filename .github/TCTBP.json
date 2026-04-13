@@ -4,14 +4,14 @@
     "sourceOfTruth": "TCTBP.json",
     "fallbackDocument": "TCTBP Agent.md",
     "templateMode": false,
-    "templateInstructions": "This repository carries a repo-specific TCTBP runtime for the Desklet Bandwidth Monitor project. Keep the workflow files aligned and preserve the desklet's commands, tag format, and deployment paths when updating them."
+    "templateInstructions": "This repository uses the TCTBP workflow as a repo-specific profile. Preserve the desklet repo's validation script, metadata.json version source, bare semver tag format, local install/package scripts, docs paths, and phase-branch conventions when updating these files."
   },
   "project": {
     "name": "desklet-bandwidth-monitor",
-    "description": "Native Cinnamon/GJS desklet for monitoring live network bandwidth with release packaging and local install support.",
+    "description": "Native Cinnamon/GJS desklet for displaying live network bandwidth activity with local installation and release packaging support.",
     "defaultBranch": "main",
     "versionFiles": ["metadata.json"],
-    "changelogFormat": null,
+    "changelogFormat": "keep-a-changelog",
     "locale": "en-AU"
   },
   "profile": {
@@ -29,9 +29,10 @@
       "requireBuildBeforeShip": true
     },
     "versioning": {
-      "sourceOfTruth": "metadata.json",
+      "sourceOfTruth": "metadata.json:version",
       "tagFormat": "{version}"
-    }
+    },
+    "releaseBuildPolicy": "explicit-packaging-or-deployment-only"
   },
   "activation": {
     "triggers": [
@@ -58,15 +59,10 @@
       "enabled": true,
       "pattern": "^branch(?:\\s+(.+))?$",
       "allowCloseoutWithoutNewBranch": true,
-      "stopIfTargetBranchExistsLocal": false,
-      "stopIfTargetBranchExistsRemote": false,
+      "stopIfTargetBranchExistsLocal": true,
+      "stopIfTargetBranchExistsRemote": true,
       "stopIfTargetBranchEqualsDefault": true,
-      "stopIfTargetBranchInvalid": true,
-      "autoRenameTargetWhenExists": true,
-      "autoRenameSuffixSeparator": "-",
-      "autoRenameStartAt": 1,
-      "checkResolvedTargetAgainstRemote": true,
-      "checkResolvedTargetForCaseCollision": true
+      "stopIfTargetBranchInvalid": true
     }
   },
   "ship": {
@@ -79,7 +75,7 @@
     "stopIfBranchBehindUpstream": true,
     "stopIfBranchDiverged": true,
     "stopIfWorkingTreeDirty": true,
-    "purpose": "Create a formal shipped version from a clean, fetched branch, allowing first-time publication from a clean unpublished branch while keeping version, tag, and remote state recoverable and unambiguous."
+    "purpose": "Create a formal shipped version from a clean, fetched branch, allowing first-time publication from a clean unpublished branch while keeping metadata.json version, tags, and remote state recoverable and unambiguous."
   },
   "publish": {
     "preferredTriggers": ["publish", "publish please"],
@@ -162,7 +158,7 @@
       "ship-readiness",
       "handover-readiness"
     ],
-    "comment": "For status, render the fuller local-versus-origin operator snapshot. Include the current branch, default branch, tags, ahead/behind state, and handover relevance. Use 'n/a' where no meaningful origin-side value exists."
+    "comment": "For status, the first user-visible output block must be the fuller local-versus-origin comparison table using exactly the configured columns `Origin`, `Local`, `Status`, and `Action(s)`. Emit it as a standalone Markdown table block with a blank line before and after the table. Do not replace the table with prose, do not place prose on the same line as the table header, and do not emit a status-only reply without the table. Include the current branch, default branch, tags, ahead/behind state, and handover relevance. Use 'n/a' where no meaningful origin-side value exists."
   },
   "handoverReport": {
     "enabled": true,
@@ -176,7 +172,7 @@
       "metadata-consistency",
       "handover-baseline"
     ],
-    "comment": "At the end of handover, render a concise five-row summary table that confirms the current branch, tag state, metadata branch publication, metadata consistency, and clean synced baseline. Keep it shorter than status and focused on the handover result."
+    "comment": "At the end of handover, render a concise five-row summary table that confirms the current branch, tag state, metadata branch publication, metadata consistency, and clean synced baseline. Emit it as a standalone Markdown table block with a blank line before and after the table. Keep it shorter than status and focused on the handover result."
   },
   "checkpointReport": {
     "enabled": true,
@@ -190,7 +186,7 @@
       "upstream-sync-state",
       "remote-side-effects"
     ],
-    "comment": "At the end of checkpoint, render a concise summary table focused on the actual commit transition and the resulting local-only baseline. Include the previous HEAD commit, the new checkpoint commit, the resulting working-tree state, the branch sync state, and an explicit confirmation that remote state did not change. Use 'n/a' where no meaningful origin-side value exists."
+    "comment": "At the end of checkpoint, render a concise summary table focused on the actual commit transition and the resulting local-only baseline. Emit it as a standalone Markdown table block with a blank line before and after the table. Include the previous HEAD commit, the new checkpoint commit, the resulting working-tree state, the branch sync state, and an explicit confirmation that remote state did not change. Use 'n/a' where no meaningful origin-side value exists."
   },
   "branch": {
     "enabled": true,
@@ -199,16 +195,10 @@
     "allowCloseoutWithoutNewBranch": true,
     "stopIfDetachedHead": true,
     "validateTargetBranchNameBeforeWorkflow": true,
-    "stopIfTargetBranchExistsLocal": false,
-    "stopIfTargetBranchExistsRemote": false,
+    "stopIfTargetBranchExistsLocal": true,
+    "stopIfTargetBranchExistsRemote": true,
     "stopIfTargetBranchEqualsDefault": true,
     "stopIfTargetBranchInvalid": true,
-    "autoRenameTargetWhenExists": true,
-    "autoRenameSuffixSeparator": "-",
-    "autoRenameStartAt": 1,
-    "checkResolvedTargetAgainstRemote": true,
-    "checkResolvedTargetForCaseCollision": true,
-    "reportResolvedTargetNameBeforeCreation": true,
     "requiresCleanTreeBeforeSwitch": true,
     "stopIfDirtyAndShipDeclined": true,
     "stopIfSourceBranchAheadOfUpstream": true,
@@ -321,11 +311,10 @@
     }
   },
   "docsInfraPolicy": {
-    "skipSteps": ["format", "test", "lint", "build"],
+    "skipSteps": ["test", "lint", "build"],
     "keepSteps": ["preflight", "problems-editor", "docs-impact", "commit", "push"],
-    "filePatterns": ["*.md", "*.txt", "*.rst", "docs/**", ".github/**", "LICENSE*", "CHANGELOG*", "CONTRIBUTING*"],
-    "excludeWhenCodePresent": ["*.js", "*.py", "*.css", "metadata.json", "settings-schema.json", "scripts/**"],
-    "comment": "For docs-only or workflow-only changes: skip the desklet validation and JSON format commands, but keep editor diagnostics and docs impact assessment."
+    "filePatterns": ["*.md", "*.txt", "*.rst", "docs/**", ".github/**", "packaging/**", "LICENSE*", "CHANGELOG*", "CONTRIBUTING*"],
+    "comment": "For docs-only or infrastructure-only changes: skip heavy verification commands, keep editor diagnostics and docs impact assessment."
   },
   "documentation": {
     "requireImpactAssessment": true,
@@ -342,34 +331,34 @@
     "rules": [
       {
         "changeType": "user-visible-feature",
-        "review": ["README.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md", ".github/TCTBP Cheatsheet.md", ".github/TCTBP Agent.md"]
+        "review": ["README.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md"]
       },
       {
         "changeType": "ui-or-interaction",
-        "review": ["README.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md", ".github/TCTBP Cheatsheet.md"]
+        "review": ["README.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md", "stylesheet.css"]
       },
       {
         "changeType": "config-or-settings",
-        "review": ["README.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md", ".github/copilot-instructions.md"]
+        "review": ["README.md", "docs/user-guide.md", "settings-schema.json", "metadata.json"]
       },
       {
         "changeType": "packaging-or-metadata",
-        "review": ["README.md", "docs/user-guide.md", "metadata.json", "scripts/package-desklet.sh", "scripts/install-local-desklet.sh", ".github/copilot-instructions.md"]
+        "review": ["README.md", "docs/user-guide.md", "scripts/install-local-desklet.sh", "scripts/package-desklet.sh", "metadata.json"]
       },
       {
         "changeType": "roadmap-or-status",
-        "review": ["README.md", "docs/implementation-plan.md", ".github/bandwidth_monitor_desklet_specification.md", ".github/TCTBP Cheatsheet.md"]
+        "review": ["docs/implementation-plan.md", "docs/user-guide.md", ".github/bandwidth_monitor_desklet_specification.md"]
       },
       {
         "changeType": "internal-only",
         "review": []
       }
     ],
-    "comment": "Also review any desklet design, install, packaging, or planning document directly affected by the change."
+    "comment": "Also review the desklet specification or other directly affected technical notes when behaviour changes."
   },
   "deploy": {
     "preferredTriggers": ["deploy", "deploy please"],
-    "purpose": "This repository can either package the desklet for release or install a real local copy into Cinnamon for desktop testing. Deploy should use those repo-defined flows rather than ad hoc copy commands.",
+    "purpose": "Deploy is repo-specific and should be used only for explicit local Cinnamon installation of the desklet.",
     "stopIfDetachedHead": true,
     "requireCleanTree": true,
     "requireSyncedBranch": true,
@@ -378,17 +367,13 @@
     "buildCommand": "./scripts/package-desklet.sh",
     "migrationCommand": null,
     "targets": {
-      "cinnamon-local-install": {
-        "buildCommand": "./scripts/package-desklet.sh",
+      "cinnamon-user-local": {
+        "description": "Install or update the desklet in the current user's local Cinnamon desklets directory.",
         "installCommand": "./scripts/install-local-desklet.sh",
-        "postDeployValidation": [
-          "Confirm ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/desklet.js exists",
-          "Confirm ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json exists"
+        "postDeployChecks": [
+          "test -d ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T",
+          "test -f ~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json"
         ]
-      },
-      "release-package": {
-        "buildCommand": "./scripts/package-desklet.sh",
-        "expectedOutput": "dist/<uuid>-v<version>.zip"
       }
     }
   },
@@ -397,7 +382,7 @@
     "patchEveryShip": true,
     "patchEveryShipForDocsInfrastructureOnly": false,
     "minorOnFirstShipOfBranch": true,
-    "minorBranchPrefixes": ["phase/", "feature/"],
+    "minorBranchPrefixes": ["phase-", "feature/"],
     "majorExplicitOnly": true
   },
   "tagging": {
