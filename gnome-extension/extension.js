@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -14,7 +15,37 @@ import {readSettingsSnapshot} from './shared/settings.js';
 
 const MENU_ICON_NAME = 'network-transmit-receive-symbolic';
 
-function createInfoItem(title, subtitle = '', note = '') {
+function resolveInlineFontSizeStyle(fontSizePoints) {
+    if (!Number.isInteger(fontSizePoints) || fontSizePoints <= 0)
+        return '';
+
+    return `font-size: ${fontSizePoints}pt;`;
+}
+
+function applyLabelFontSize(label, fontSizePoints) {
+    if (!label)
+        return;
+
+    label.style = resolveInlineFontSizeStyle(fontSizePoints);
+
+    if (!Number.isInteger(fontSizePoints) || fontSizePoints <= 0) {
+        label.clutter_text.set_font_name(null);
+        label.queue_relayout();
+        return;
+    }
+
+    const currentDescription = label.clutter_text.get_font_description();
+    const nextDescription = currentDescription
+        ? currentDescription.copy()
+        : Pango.FontDescription.from_string('Sans');
+
+    nextDescription.set_size(fontSizePoints * Pango.SCALE);
+    label.clutter_text.set_font_description(nextDescription);
+    label.queue_relayout();
+}
+
+function createInfoItem(title, subtitle = '', note = '', fontSizePoints = 0) {
+    const inlineFontSizeStyle = resolveInlineFontSizeStyle(fontSizePoints);
     const item = new PopupMenu.PopupBaseMenuItem({
         reactive: false,
         can_focus: false,
@@ -22,12 +53,14 @@ function createInfoItem(title, subtitle = '', note = '') {
     const box = new St.BoxLayout({
         vertical: true,
         style_class: 'bandwidth-monitor-menu-item',
+        style: inlineFontSizeStyle,
     });
     const titleLabel = new St.Label({
         text: title,
         style_class: 'bandwidth-monitor-menu-title',
         x_expand: true,
     });
+    applyLabelFontSize(titleLabel, fontSizePoints);
 
     box.add_child(titleLabel);
 
@@ -37,6 +70,7 @@ function createInfoItem(title, subtitle = '', note = '') {
             style_class: 'bandwidth-monitor-menu-subtitle',
             x_expand: true,
         });
+        applyLabelFontSize(subtitleLabel, fontSizePoints);
         subtitleLabel.clutter_text.line_wrap = true;
         subtitleLabel.clutter_text.ellipsize = 0;
         box.add_child(subtitleLabel);
@@ -48,6 +82,7 @@ function createInfoItem(title, subtitle = '', note = '') {
             style_class: 'bandwidth-monitor-menu-note',
             x_expand: true,
         });
+        applyLabelFontSize(noteLabel, fontSizePoints);
         noteLabel.clutter_text.line_wrap = true;
         noteLabel.clutter_text.ellipsize = 0;
         box.add_child(noteLabel);
@@ -57,7 +92,8 @@ function createInfoItem(title, subtitle = '', note = '') {
     return item;
 }
 
-function createTrafficItem(row, rateUnitMode, aggregate = false) {
+function createTrafficItem(row, rateUnitMode, fontSizePoints = 0, aggregate = false) {
+    const inlineFontSizeStyle = resolveInlineFontSizeStyle(fontSizePoints);
     const item = new PopupMenu.PopupBaseMenuItem({
         reactive: false,
         can_focus: false,
@@ -67,6 +103,7 @@ function createTrafficItem(row, rateUnitMode, aggregate = false) {
         style_class: aggregate
             ? 'bandwidth-monitor-menu-item bandwidth-monitor-menu-item-aggregate'
             : 'bandwidth-monitor-menu-item',
+        style: inlineFontSizeStyle,
     });
     const header = new St.BoxLayout({
         vertical: false,
@@ -78,10 +115,12 @@ function createTrafficItem(row, rateUnitMode, aggregate = false) {
         style_class: 'bandwidth-monitor-menu-row-title',
         x_expand: true,
     });
+    applyLabelFontSize(titleLabel, fontSizePoints);
     const stateLabel = new St.Label({
         text: resolveStateText(row, aggregate),
         style_class: 'bandwidth-monitor-menu-row-state',
     });
+    applyLabelFontSize(stateLabel, fontSizePoints);
     const ratesLabel = new St.Label({
         text: row.hasRate
             ? `RX ${formatRate(row.rxRate, rateUnitMode)}   TX ${formatRate(row.txRate, rateUnitMode)}`
@@ -89,11 +128,13 @@ function createTrafficItem(row, rateUnitMode, aggregate = false) {
         style_class: 'bandwidth-monitor-menu-row-metrics',
         x_expand: true,
     });
+    applyLabelFontSize(ratesLabel, fontSizePoints);
     const totalsLabel = new St.Label({
         text: `Session totals: RX ${formatDataSize(row.totalRxBytes)}   TX ${formatDataSize(row.totalTxBytes)}`,
         style_class: 'bandwidth-monitor-menu-row-secondary',
         x_expand: true,
     });
+    applyLabelFontSize(totalsLabel, fontSizePoints);
 
     header.add_child(titleLabel);
     header.add_child(stateLabel);
@@ -108,6 +149,7 @@ function createTrafficItem(row, rateUnitMode, aggregate = false) {
             style_class: 'bandwidth-monitor-menu-note',
             x_expand: true,
         });
+        applyLabelFontSize(footerLabel, fontSizePoints);
         footerLabel.clutter_text.line_wrap = true;
         footerLabel.clutter_text.ellipsize = 0;
         container.add_child(footerLabel);
@@ -162,6 +204,7 @@ class BandwidthIndicator extends PanelMenu.Button {
             style_class: 'bandwidth-monitor-indicator-label',
             y_align: Clutter.ActorAlign.CENTER,
         });
+        this._applyTextSize();
 
         this._indicatorBox.add_child(this._indicatorIcon);
         this._indicatorBox.add_child(this._summaryLabel);
@@ -206,8 +249,16 @@ class BandwidthIndicator extends PanelMenu.Button {
 
     _reloadSettings() {
         this._config = readSettingsSnapshot(this._settings);
+        this._applyTextSize();
         this._restartTimer();
         this._updateSample();
+    }
+
+    _applyTextSize() {
+        const inlineFontSizeStyle = resolveInlineFontSizeStyle(this._config.fontSizePoints);
+        this.style = inlineFontSizeStyle;
+        this._indicatorBox.style = inlineFontSizeStyle;
+        applyLabelFontSize(this._summaryLabel, this._config.fontSizePoints);
     }
 
     _restartTimer() {
@@ -288,19 +339,19 @@ class BandwidthIndicator extends PanelMenu.Button {
                 ? 'The panel summary uses combined traffic when multiple interfaces are active.'
                 : 'The panel summary follows the current primary interface.');
 
-        this._statusSection.addMenuItem(createInfoItem('Bandwidth Monitor', primaryText, noteText));
+        this._statusSection.addMenuItem(createInfoItem('Bandwidth Monitor', primaryText, noteText, this._config.fontSizePoints));
 
         if (!sample.hasVisibleRows) {
-            this._rowsSection.addMenuItem(createInfoItem('No visible interfaces', 'Adjust the interface settings in Preferences if you need loopback or tunnel devices.'));
+            this._rowsSection.addMenuItem(createInfoItem('No visible interfaces', 'Adjust the interface settings in Preferences if you need loopback or tunnel devices.', '', this._config.fontSizePoints));
             return;
         }
 
         sample.rows.forEach(row => {
-            this._rowsSection.addMenuItem(createTrafficItem(row, this._config.rateUnitMode));
+            this._rowsSection.addMenuItem(createTrafficItem(row, this._config.rateUnitMode, this._config.fontSizePoints));
         });
 
         if (this._config.showAggregate)
-            this._rowsSection.addMenuItem(createTrafficItem(sample.aggregate, this._config.rateUnitMode, true));
+            this._rowsSection.addMenuItem(createTrafficItem(sample.aggregate, this._config.rateUnitMode, this._config.fontSizePoints, true));
     }
 });
 

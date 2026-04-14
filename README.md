@@ -19,7 +19,7 @@ This branch also now contains a first GNOME Shell extension MVP with:
 - a multi-interface dropdown with session totals
 - automatic or preferred-interface selection
 - a combined traffic row option
-- GNOME preferences for refresh rate, interface selection, and rate units
+- GNOME preferences for refresh rate, text size, interface selection, and rate units
 - local install, validation, and packaging scripts for GNOME Shell 50
 
 ## Key Documents
@@ -73,6 +73,18 @@ For local GNOME Shell testing during development:
 ```
 
 This installs a real local extension copy into `~/.local/share/gnome-shell/extensions/bandwidth-monitor-gnome@Ken24T` and compiles the bundled schema.
+
+For a faster local GNOME edit-test loop that reinstalls and reloads the active extension:
+
+```bash
+./scripts/reload-gnome-extension.sh
+```
+
+To reload and open a fresh preferences window directly:
+
+```bash
+./scripts/reload-gnome-extension.sh --prefs
+```
 
 For GNOME extension packaging:
 

@@ -127,6 +127,15 @@ export default class BandwidthMonitorPreferences extends ExtensionPreferences {
             _('Choose whether rates use byte or bit scaling.'),
             RATE_UNIT_OPTIONS
         ));
+        monitoringGroup.add(createSpinRow(
+            settings,
+            SETTINGS_KEYS.FONT_SIZE_POINTS,
+            _('Text size'),
+            _('Point size for the panel summary and dropdown text. Set to 0 to use the GNOME Shell theme default.'),
+            0,
+            24,
+            1
+        ));
         monitoringGroup.add(createSwitchRow(
             settings,
             SETTINGS_KEYS.SHOW_AGGREGATE,
@@ -166,7 +175,7 @@ export default class BandwidthMonitorPreferences extends ExtensionPreferences {
         const infoGroup = new Adw.PreferencesGroup({ title: _('Current scope') });
         const infoRow = new Adw.ActionRow({
             title: _('GNOME MVP status'),
-            subtitle: _('This first implementation provides a top-bar summary, a multi-interface dropdown, session totals, a combined row, and basic monitoring preferences. Sparkline charts, per-interface visibility controls, and deeper appearance options are planned later.')
+            subtitle: _('This first implementation provides a top-bar summary, a multi-interface dropdown, session totals, a combined row, basic monitoring preferences, and text-size control. Sparkline charts, per-interface visibility controls, and deeper appearance options are planned later.')
         });
         infoRow.set_sensitive(false);
         infoGroup.add(infoRow);

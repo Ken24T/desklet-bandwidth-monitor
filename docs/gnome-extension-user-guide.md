@@ -14,7 +14,7 @@ The GNOME implementation currently provides:
 - session RX and TX totals for each row
 - an optional combined traffic row
 - automatic or preferred-interface selection
-- basic preferences for refresh rate, unit mode, tunnel handling, and loopback visibility
+- basic preferences for refresh rate, unit mode, text size, tunnel handling, and loopback visibility
 
 The GNOME implementation does not yet provide:
 
@@ -57,6 +57,18 @@ Install the extension into the local user extensions directory:
 ./scripts/install-gnome-extension.sh
 ```
 
+For a faster edit-test loop during development, reinstall and reload the current extension in one step:
+
+```bash
+./scripts/reload-gnome-extension.sh
+```
+
+To open a fresh preferences window after reloading:
+
+```bash
+./scripts/reload-gnome-extension.sh --prefs
+```
+
 This copies the extension into:
 
 ```text
@@ -66,6 +78,8 @@ This copies the extension into:
 After installation, enable it from a GNOME Shell session using the Extensions app or `gnome-extensions enable bandwidth-monitor-gnome@Ken24T`.
 
 If the extension does not appear immediately in the Extensions app after the first local install, log out and back in. On this Ubuntu GNOME setup, the running session may not index newly copied user extensions until the session refreshes.
+
+When iterating on `prefs.js`, avoid relying on a long-lived Extension Manager window alone. On this system, both `extension-manager` and the GNOME extension preferences host can keep showing stale preferences UI code until they are restarted. Use `./scripts/reload-gnome-extension.sh --prefs` to reopen preferences through a fresh host process.
 
 ## Packaging
 
@@ -105,6 +119,7 @@ The current preferences window exposes:
 
 - refresh interval in seconds
 - rate units in bytes per second or bits per second
+- text size for the panel summary and dropdown, with `0` meaning the GNOME Shell theme default
 - primary-interface mode: automatic or preferred interface
 - preferred interface name
 - whether tunnel devices may become the primary interface

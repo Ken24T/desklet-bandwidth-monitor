@@ -61,3 +61,8 @@ else
     echo "The files are installed, but this running GNOME session has not indexed the new extension yet."
     echo "If it does not appear in Extensions immediately, log out and back in, then enable bandwidth-monitor-gnome@Ken24T."
 fi
+
+if pgrep -x extension-manager >/dev/null 2>&1; then
+    echo "Extension Manager is currently running. During development, its preferences view can show stale extension UI code."
+    echo "Quit and reopen Extension Manager, or use: gnome-extensions prefs bandwidth-monitor-gnome@Ken24T"
+fi

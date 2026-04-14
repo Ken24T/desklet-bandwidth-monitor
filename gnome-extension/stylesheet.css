@@ -3,7 +3,7 @@
 }
 
 .bandwidth-monitor-indicator-label {
-    font-weight: 700;
+    font-weight: normal;
     min-width: 14em;
 }
 
@@ -35,6 +35,7 @@
 }
 
 .bandwidth-monitor-menu-row-metrics {
+    font-weight: normal;
     margin-top: 2px;
 }
 

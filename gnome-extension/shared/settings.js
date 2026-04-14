@@ -5,7 +5,8 @@ export const SETTINGS_KEYS = {
     INCLUDE_TUNNELS: 'include-tunnel-interfaces',
     INCLUDE_LOOPBACK: 'include-loopback-interfaces',
     SHOW_AGGREGATE: 'show-aggregate',
-    RATE_UNIT_MODE: 'rate-unit-mode'
+    RATE_UNIT_MODE: 'rate-unit-mode',
+    FONT_SIZE_POINTS: 'font-size-points'
 };
 
 export const SELECTION_MODE_VALUES = ['auto', 'preferred'];
@@ -19,7 +20,8 @@ export function readSettingsSnapshot(settings) {
         includeTunnelInterfaces: settings.get_boolean(SETTINGS_KEYS.INCLUDE_TUNNELS),
         includeLoopbackInterfaces: settings.get_boolean(SETTINGS_KEYS.INCLUDE_LOOPBACK),
         showAggregate: settings.get_boolean(SETTINGS_KEYS.SHOW_AGGREGATE),
-        rateUnitMode: _readAllowedString(settings, SETTINGS_KEYS.RATE_UNIT_MODE, RATE_UNIT_MODE_VALUES, 'auto-bytes')
+        rateUnitMode: _readAllowedString(settings, SETTINGS_KEYS.RATE_UNIT_MODE, RATE_UNIT_MODE_VALUES, 'auto-bytes'),
+        fontSizePoints: _clampInteger(settings.get_int(SETTINGS_KEYS.FONT_SIZE_POINTS), 0, 24, 0)
     };
 }
 

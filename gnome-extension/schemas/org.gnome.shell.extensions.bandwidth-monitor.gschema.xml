@@ -36,5 +36,10 @@
       <summary>Rate unit mode</summary>
       <description>Choose whether traffic rates are shown with byte or bit scaling.</description>
     </key>
+    <key name="font-size-points" type="i">
+      <default>0</default>
+      <summary>Text size</summary>
+      <description>Point size for the panel summary and dropdown text. Set to 0 to use the GNOME Shell theme default.</description>
+    </key>
   </schema>
 </schemalist>
