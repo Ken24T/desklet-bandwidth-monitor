@@ -632,6 +632,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             });
             widget.container._bandwidthMonitorDetailData = this._buildInterfaceDetailsData(row, displayedMetrics);
             widget.container.visible = shownInterfaceNames.has(row.interfaceInfo.name);
+            this._applyRowDisplaySettings(widget, displaySettings);
 
             if (widget.container.visible) {
                 visibleKeys.push(key);
@@ -664,6 +665,7 @@ class BandwidthMonitorDesklet extends Desklet.Desklet {
             });
             widget.container._bandwidthMonitorDetailData = this._buildAggregateDetailsData(aggregate, displayedMetrics, visibleRowCount);
             widget.container.visible = true;
+            this._applyRowDisplaySettings(widget, displaySettings);
         }
 
         this._syncPanelChildOrder(visibleKeys);
