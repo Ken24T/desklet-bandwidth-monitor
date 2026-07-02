@@ -33,6 +33,8 @@ The target repository is the source of repo-specific commands, paths, deployment
 
 Fill in these values before using the prompt.
 
+Absolute paths may use Windows or POSIX syntax. Preserve the target repository's existing path style instead of rewriting it.
+
 ```text
 Source TCTBP repository path: <ABSOLUTE_CURRENT_REPOSITORY_PATH_OR_OTHER_SOURCE_REPO>
 Target repository path: <ABSOLUTE_TARGET_REPO_PATH>
@@ -110,9 +112,9 @@ If `Target repository state` is `AUTO`:
 
 1. Inspect the target repository before editing.
 2. Detect which state applies:
-   - `NEW_REPOSITORY` when the target repo has no local TCTBP workflow files yet
-   - `EXISTING_REPOSITORY_WITHOUT_AGENT` when workflow files exist but `.github/agents/TCTBP.agent.md` does not
-   - `EXISTING_REPOSITORY_WITH_AGENT` when the custom agent entry point already exists
+	- `NEW_REPOSITORY` when the target repo has no local TCTBP workflow files yet
+	- `EXISTING_REPOSITORY_WITHOUT_AGENT` when workflow files exist but `.github/agents/TCTBP.agent.md` does not
+	- `EXISTING_REPOSITORY_WITH_AGENT` when the custom agent entry point already exists
 3. Report the detected state before editing.
 4. If the evidence is ambiguous, stop and ask for clarification instead of guessing.
 
@@ -187,30 +189,30 @@ If `Include hook layer` is `NO`:
 2. Read the current local versions of every managed target file before editing when they exist.
 3. Inspect the target repository structure, commands, version files, deployment scripts, and documentation paths before editing.
 4. Classify what you find before making edits:
-   - generic source improvements to merge forward
-   - repo-specific local settings to preserve exactly
-   - conflicts or intentional deviations that require judgement
+	- generic source improvements to merge forward
+	- repo-specific local settings to preserve exactly
+	- conflicts or intentional deviations that require judgement
 5. Determine whether the target repo is a new install, an install of missing agent runtime, or an update of existing agent runtime.
 6. If the target repository is already under git and a preferred install/update branch was provided, create or switch to that branch before editing when safe.
 7. Create the required files and folders in the target repo.
 8. Preserve repo-specific settings while applying the current runtime model.
 9. Keep these target files aligned with each other after editing:
-   - `.gitignore`
-   - `.github/agents/TCTBP.agent.md`
-   - `.github/TCTBP.json`
-   - `.github/TCTBP Agent.md`
-   - `.github/TCTBP Cheatsheet.md`
-   - `.github/copilot-instructions.md`
-   - `.github/prompts/Install TCTBP Agent Infrastructure Into Another Repository.prompt.md`
+	- `.gitignore`
+	- `.github/agents/TCTBP.agent.md`
+	- `.github/TCTBP.json`
+	- `.github/TCTBP Agent.md`
+	- `.github/TCTBP Cheatsheet.md`
+	- `.github/copilot-instructions.md`
+	- `.github/prompts/Install TCTBP Agent Infrastructure Into Another Repository.prompt.md`
 10. Ensure `.gitignore` ignores `.github/.tctbp-backups/` so local file backups created by reconcile work do not get committed as normal workflow changes.
 11. If backup artefacts under `.github/.tctbp-backups/` are already tracked in the target repository, remove them from version control non-destructively while preserving the local backup files.
 12. If the hook layer is included, keep `.github/hooks/tctbp-safety.json` and `scripts/tctbp-pretool-hook.js` aligned with the installed documentation.
 13. Validate the edited files using available JSON and Markdown diagnostics and any lightweight repo validation that fits the change type.
 14. Run a post-install smoke check for the installed runtime surface:
-   - confirm `.github/agents/TCTBP.agent.md` frontmatter is valid and its description still contains the explicit trigger phrases
-   - confirm prompt frontmatter is valid and references the installed runtime files consistently
-   - confirm `.github/hooks/tctbp-safety.json` points at the installed hook script path when the hook layer is enabled
-   - confirm no docs or instructions still reference omitted hook files when the hook layer is disabled
+	- confirm `.github/agents/TCTBP.agent.md` frontmatter is valid and its description still contains the explicit trigger phrases
+	- confirm prompt frontmatter is valid and references the installed runtime files consistently
+	- confirm `.github/hooks/tctbp-safety.json` points at the installed hook script path when the hook layer is enabled
+	- confirm no docs or instructions still reference omitted hook files when the hook layer is disabled
 15. Do not perform checkpoint, SHIP, publish, deploy, or handover in the target repo unless explicitly requested.
 
 ## What You Must Not Do
@@ -238,6 +240,18 @@ When finished, report:
 
 ## Example Invocation
 
+```text
+reconcile-tctbp /absolute/path/to/target-repo
+
+Canonical TCTBP repository path: /home/ken/Documents/development/repos/TCTBP
+Target repository path: /absolute/path/to/target-repo
+Target repository state: AUTO
+Preferred install/update branch in target repo: chore/apply-tctbp
+Include hook layer: YES
+Backup mode for existing repo: BRANCH_AND_FILE_BACKUPS
+Canonical ref to use from this TCTBP repo: main
+Any repo-specific settings that must be preserved exactly: build commands, deploy target names, docs paths
+Any intentional local workflow deviations that must not be normalised away: none known
 ```text
 reconcile-tctbp /absolute/path/to/target-repo
 
