@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-04-14T00:33:04Z",
+  "updatedAt": "2026-07-02T00:00:00Z",
   "workflow": "handover",
   "project": {
     "name": "desklet-bandwidth-monitor",
     "defaultBranch": "main"
   },
   "resume": {
-    "branch": "port/gnome-extenstion",
-    "commit": "c57c4d730aeb5bfa36334337b2893f013f0adcf9",
-    "remoteRef": "origin/port/gnome-extenstion"
+    "branch": "infrastructure/reconcile-tctbp",
+    "commit": "5b29b579b0ee8a0d5bdb9119c4e89ea3f2406c9a",
+    "remoteRef": "origin/infrastructure/reconcile-tctbp"
   },
   "handover": {
     "metadataBranch": "tctbp/handover-state",
-    "checkpointCommitCreated": true,
+    "checkpointCommitCreated": false,
     "version": "1.6.1",
     "latestTag": "1.6.1"
   }
