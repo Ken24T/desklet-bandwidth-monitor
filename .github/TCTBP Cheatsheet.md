@@ -1,175 +1,242 @@
-# Desklet Bandwidth Monitor — TCTBP Cheatsheet
+# TCTBP-Web Cheatsheet
 
-Short operator reference for the desklet repo workflows.
+Short operator reference for the TCTBP-Web workflows.
 
 Use this file for the quick view.
 Use [TCTBP Agent.md](TCTBP%20Agent.md) for the full workflow rules and guard rails.
+
+## Concise Cheat Sheet
+
+| Trigger family | Primary command path | Mutates repo? |
+|---|---|---|
+| status | `node scripts/tctbp-run-status.js [--suggest]` or `--json --no-fetch` | No |
+| checkpoint | `node scripts/tctbp-run-checkpoint.js` | Local commit only |
+| publish | `node scripts/tctbp-run-publish.js` | May push current branch |
+| handover | `node scripts/tctbp-run-handover.js` | May checkpoint + publish |
+| handover local | `node scripts/tctbp-run-handover.js --local-only` | Local commit only |
+| resume | `node scripts/tctbp-run-resume.js` | Local sync only |
+| orient | Copilot reads continuation context | No |
+| promote | `node scripts/tctbp-run-promote.js <staging\|review\|production>` | Local/remote per target policy |
+| deploy | `node scripts/tctbp-run-deploy.js <dev\|staging\|review\|production>` | Local/remote per target policy |
+| release | `node scripts/tctbp-run-release.js --no-docs-impact "<reason>"` | Full pipeline compose |
+| ticket | `node scripts/tctbp-run-ticket.js <create\|report\|triage> ...` | `create` writes only with `--apply` |
+| workflow | `node scripts/tctbp-run-workflow.js <deploy\|promote\|branch> ...` | Routes to sub-runners |
+| branch | `node scripts/tctbp-run-branch.js [new-branch-name]` | Local merge/branch ops |
+| ship | `node scripts/tctbp-run-ship.js --no-docs-impact "<reason>" --yes` | Commit/tag/push on `main` |
+| hotfix | `node scripts/tctbp-run-hotfix.js {start \| finish}` | Creates hotfix branch; merges, ships, and backports |
+| abort | `node scripts/tctbp-run-abort.js --dry-run` | Preview by default |
+| gate | `node scripts/tctbp-run-gate.js <test\|lint\|build>` | No (unless gate command writes) |
+| version | `node scripts/tctbp-run-version.js [--strict]` | No |
+| rollback | `node scripts/tctbp-run-rollback.js [--apply]` | Local revert commit with `--apply` |
+| scaffold | `node scripts/tctbp-run-scaffold.js [--defaults]` | Creates new project |
+
+Quick safety notes:
+
+- Preview-first workflows: `checkpoint --dry-run`, `publish --dry-run`, `handover --dry-run`, `abort` (default), `rollback` (default), `status --suggest`, `scaffold --dry-run`.
+- Machine-readable status is explicitly non-fetching: `node scripts/tctbp-run-status.js --json --no-fetch`.
+- Remote mutation workflows: `publish`, `handover`, `promote staging`, selected deploy targets, and `ship` on `main`.
+- `rollback` always uses `git revert`, never history rewrite.
+- `scaffold` creates a new directory/project outside the current repo.
 
 ## Core Rule
 
 - No code is ever lost while syncing local and remote state.
 - Do not use destructive shortcuts as part of normal workflow execution.
-- If a workflow hits divergence, ambiguity, failed verification, or stale release state, it should stop rather than guess.
+- If a workflow hits divergence, ambiguity, or a failed invariant, it should stop rather than guess.
+
+## Branch Model
+
+Three strategies, configured in `TCTBP.json` under `branchModel.strategy`:
+
+**Simple** (`"simple"`): Single production branch (`main`). Used by TCTBP-Web itself and libraries.
+
+**Staged** (`"staged"`): Three environment branches:
+
+- `development` — day-to-day working branch
+- `staging` — field-testing and review branch
+- `main` — production release branch
+
+**Long-lived environment branches** (`"long-lived-environment-branches"`): Three named branches with explicit promote and deploy:
+
+- `development` — daily coding and internal verification
+- `review` — user field testing
+- `main` — production releases
+
+Promotion is a merge step between these branches. Deployment never performs the promotion merge for you.
 
 ## Repo Gates
 
-Repo gates for this repository:
+Repo gates are configured in `TCTBP.json` under `profile.commands`. Gates report "not configured" gracefully when the corresponding command is null.
 
-- Format check: `python3 -m json.tool metadata.json >/dev/null && python3 -m json.tool settings-schema.json >/dev/null`
-- Test: `./scripts/validate-desklet.sh`
-- Lint: `./scripts/validate-desklet.sh`
-- Normal build gate: `./scripts/validate-desklet.sh`
-- Release/package build: `./scripts/package-desklet.sh`
+Typical scaffolded project gates:
 
-Release/package build rule:
-
-- `./scripts/package-desklet.sh` is for explicit packaging or deployment work.
-- Normal SHIP uses `./scripts/validate-desklet.sh` by default.
-
-## Version And Tags
-
-- Version source: `metadata.json` field `version`
-- Tag format: plain semver, for example `1.5.0`
-- Do not normalise this repo to `v1.5.0` tags unless explicitly requested.
+- Test: `npm run test`
+- Lint: `npm run lint`
+- Build: `npm run build`
+- Format: `npx prettier --check .`
 
 ## Triggers
 
-### `ship` / `ship please` / `shipping` / `prepare release`
+### `scaffold` / `scaffold web` / `new project` / `create project`
 
-Purpose:
-Formal source release workflow.
+Purpose: Create a new web project with the full TCTBP-Web runtime surface.
 
 Attempts to:
 
-- preflight the repo state
-- show a concise origin-vs-local snapshot table before mutating anything
-- run verification gates
-- confirm zero problems
-- assess docs impact
-- bump version when required
-- commit the release changes
-- create the version tag
-- push the current branch
+- Conduct an interactive interview (6 questions)
+- Create the project directory with skeleton files
+- Install the complete TCTBP-Web runner surface
+- Generate a populated `TCTBP.json` profile
+- Initialize git and create the branch structure
+- Open on the working branch ready for development
+- Smoke-test the installed runners
 
 Notes:
 
-- starts with a four-column table: `Origin`, `Local`, `Status`, `Action(s)`
-- uses `./scripts/validate-desklet.sh`, not `./scripts/package-desklet.sh`, as the default SHIP gate
-- patch bump behaviour is controlled by `versioning.patchEveryShip` and `versioning.patchEveryShipForDocsInfrastructureOnly` in `.github/TCTBP.json`
-- in this repo, docs-only and infrastructure-only ships do not bump by default
-- first ship on a `phase-` or `feature/` branch gets a minor bump
-- may publish a clean branch that has no upstream yet by creating the upstream on the first ship push
-- stops if the branch is dirty, behind origin, diverged from origin, or on detached `HEAD`
+- The scaffolded project opens on the working branch (default: `development`).
+- The generated profile is fully populated — no placeholders to fill in.
+- Test scaffolding (Vitest by default) is included so the test gate passes on day one.
+
+### `ship` / `ship please` / `shipping` / `prepare release`
+
+Purpose: Formal shipped version workflow. Reserved for `main`.
+
+Executable path: `node scripts/tctbp-run-ship.js --no-docs-impact "<reason>" --yes`
+
+### `hotfix` / `hotfix start` / `hotfix finish` / `emergency fix`
+
+Purpose: Emergency-lane production fix that bypasses the normal promote-review-promote-production flow.
+
+Executable paths:
+- `node scripts/tctbp-run-hotfix.js start <name>` — create `hotfix/<name>` from `main`
+- `node scripts/tctbp-run-hotfix.js finish --no-docs-impact "<reason>"` — merge hotfix to `main`, ship, and backport to pre-production and working branches
+
+Notes:
+- `finish` always ships with `--bump patch` unless another bump is supplied.
+- `finish` pushes the shipped `main` branch, then backports it to the configured pre-production and working branches and pushes those.
+
+### `prepare release` with `--resume`
+
+Purpose: Run or resume the staged deploy → promote → ship pipeline with an atomic release journal and commit/tree candidate revalidation.
+
+Executable paths:
+- `node scripts/tctbp-run-release.js --no-docs-impact "<reason>"`
+- `node scripts/tctbp-run-release.js --resume`
+
+The generic runner does not assume DDRE backup, restore, systemd, or runtime-storage behaviour. Downstream projects supply those integrations separately.
 
 ### `publish` / `publish please`
 
-Safely publish the current clean branch to `origin` without release semantics.
+Purpose: Safely publish the current clean branch to `origin` without release semantics.
 
-- no version bump
-- no tag creation
-- no handover metadata update
+Executable path: `node scripts/tctbp-run-publish.js`
 
 ### `checkpoint` / `checkpoint please`
 
-Create a durable local-only checkpoint commit on the current branch without release or sync side effects.
+Purpose: Create a durable local-only checkpoint commit.
 
-- stops if `HEAD` is detached, the tree is clean, conflicts exist, or a merge/rebase/cherry-pick/revert is in progress
-- stages current tracked and non-ignored untracked changes
-- creates a clearly marked non-release local commit
-- ends with a concise four-column table covering the previous HEAD, new checkpoint commit, resulting working-tree state, sync state, and explicit local-only outcome
-- emits that checkpoint table as a standalone Markdown block with a blank line before and after it
-- does not push, create a tag, or update handover metadata
+Executable path: `node scripts/tctbp-run-checkpoint.js`
 
-### `handover` / `handover please`
+### `handover` / `handover please` / `handover local` / `handover local please`
 
-Safely checkpoint and publish the current work branch, then refresh `tctbp/handover-state` so another machine can resume deterministically.
+Purpose: Safely checkpoint and sync the active branch for machine handoff.
 
-Notes:
-
-- can reuse a recent matching standalone `checkpoint` commit instead of creating another one
-- fast-forwards when behind and clean
-- stops on divergence or ambiguity
-- ends with a concise four-column table emitted as a standalone Markdown block with a blank line before and after it
-- adds a one-line completion summary after the table
+Executable path: `node scripts/tctbp-run-handover.js`
 
 ### `resume` / `resume please`
 
-Safely restore the intended work branch at the start of a session by consulting handover metadata first, preserving local unpublished work first when a safe branch switch would otherwise strand it.
+Purpose: Restore a safe working baseline after switching machines.
 
-Attempts to:
+Executable path: `node scripts/tctbp-run-resume.js`
 
-- fetch and inspect remote state
-- read the handover metadata branch first
-- prefer metadata over arbitrary branch-recency guesses
-- detect when switching would strand local unpublished work on the current branch
-- ask to preserve that local work locally before switching when that case is safe
-- create a local tracking branch from the intended remote branch when needed
-- fast-forward the selected clean branch when origin is ahead
-- stop on ambiguity, divergence, conflicts, or any case that would require publication
+### `promote staging` / `promote production` / `promote prod`
 
-Notes:
+Purpose: Explicit merge between environment branches with code-loss prevention gates.
 
-- may create a local-only checkpoint or rescue branch after confirmation to preserve local work before switching
-- does not publish
-- does not update metadata
-- does not create a release
-- stops if preserve-local handling would be unsafe, if switching branches would still be destructive, or if local/remote state is ambiguous
+Executable path: `node scripts/tctbp-run-promote.js <staging|production> --no-docs-impact "<reason>"`
 
-### `deploy` / `deploy please`
+### `deploy dev` / `deploy staging` / `deploy prod` / `deploy production`
 
-Run an explicit local installation workflow.
+Purpose: Deploy the current environment branch to its mapped runtime environment.
 
-Repo-specific target:
+Executable paths:
+- `node scripts/tctbp-run-deploy.js dev --no-docs-impact "<reason>"`
+- `node scripts/tctbp-run-deploy.js staging --no-docs-impact "<reason>"`
+- `node scripts/tctbp-run-deploy.js production --no-docs-impact "<reason>"`
 
-- `cinnamon-user-local`
-  - build: `./scripts/package-desklet.sh`
-  - install: `./scripts/install-local-desklet.sh`
-  - validate: confirm `~/.local/share/cinnamon/desklets/bandwidth-monitor@Ken24T/metadata.json` exists
+### `run tests` / `run lint` / `run build` / `gate test` / `gate lint` / `gate build`
 
-### `status` / `status please`
+Purpose: Run quality gates directly.
 
-Read-only operator snapshot of branch state, sync status, tags, version source, and recommended next steps.
+Executable path: `node scripts/tctbp-run-gate.js <test|lint|build>`
 
-- first user-visible output block must be the fuller four-column table using `Origin`, `Local`, `Status`, and `Action(s)`
-- emit that status table as a standalone Markdown block with a blank line before and after it
+### `version status` / `version check`
+
+Purpose: Report branch/version/tag alignment.
+
+Executable path: `node scripts/tctbp-run-version.js [--strict] [--required-environment <development|staging|production>]`
+
+### `rollback` / `revert last checkpoint`
+
+Purpose: Safely revert the latest checkpoint commit.
+
+Executable path: `node scripts/tctbp-run-rollback.js [--apply]`
 
 ### `abort`
 
-Inspect and recover from a partially completed SHIP, sync, or deploy workflow.
+Purpose: Inspect partial workflow state and propose recovery.
 
-### `branch` / `branch <new-branch-name>`
+Executable path: `node scripts/tctbp-run-abort.js --dry-run`
 
-Close out current work cleanly, optionally starting the next branch.
+## Handover Promise
 
-- `branch` closes out the current branch and leaves the repo on the updated `main`
-- `branch <new-branch-name>` closes out the current branch and starts the next branch from the updated `main`
-- asks for explicit confirmation before merging a non-default branch back into `main`
-- requires the source branch to be published before the transition continues
+When `handover` succeeds:
+
+- the current work branch has been safely reconciled with `origin`
+- relevant tags have been pushed when needed
+- no implicit merge to staging or main was performed
+- code-loss safeguards were applied to any merge step
 
 ## Docs Impact Reminder
 
-Repo-specific docs commonly reviewed:
+Review docs when the change touches:
 
-- `README.md`
-- `docs/user-guide.md`
-- `docs/implementation-plan.md`
-- `.github/bandwidth_monitor_desklet_specification.md`
-- `metadata.json`
-- `settings-schema.json`
-- `scripts/install-local-desklet.sh`
-- `scripts/package-desklet.sh`
-- `.github/TCTBP Agent.md`
-- `.github/TCTBP Cheatsheet.md`
-- `.github/copilot-instructions.md`
+- user-visible features
+- UI or interaction
+- config or settings
+- packaging or metadata
+- roadmap or status
+
+## Code-Loss Prevention
+
+- Safety tags are created before every merge into a default or environment branch.
+- Merge deletion audits run after every merge with configurable file/line thresholds.
+- Pre-push net-deletion checks warn before destructive pushes.
+- `rollback` always uses `git revert`, never history rewrite.
+
+## Approval Model
+
+- `ship` may create local commit and tag state as part of the workflow
+- `checkpoint` creates a local-only non-release commit and grants no push approval
+- `publish` grants approval to push the current branch for that workflow only
+- `handover` grants approval to push the current branch and relevant tags for that workflow only
+- `promote` grants approval to push the target branch after promotion for that workflow only
+- `deploy` grants approval to run the repo-defined deployment commands for that workflow only
+- `scaffold` creates a new project outside the current repo; no current-repo mutation
+- Any other remote push still requires explicit approval unless already covered by the active workflow
 
 ## Quick Choice
 
+- Need a new web project with TCTBP-Web: use `scaffold`
 - Need a release version or tag: use `ship`
-- Need a durable local-only save before deciding whether to publish or hand over: use `checkpoint`
-- Need to sync a clean branch without release or metadata side effects: use `publish`
-- Need to stop on one machine and resume on another safely: use `handover`
-- Need to restore the last handed-over branch before starting work: use `resume`
-- Need the local Cinnamon install updated: use `deploy`
+- Need a durable local-only save without publishing: use `checkpoint`
+- Need to publish the current branch without release side effects: use `publish`
+- Need to stop on one machine and resume on another safely: use `handover`, then `resume` on the next machine
+- Need to merge development into staging: use `promote staging`
+- Need to merge staging into main for release: use `promote production`
+- Need to deploy a branch to its environment: use `deploy <dev|staging|production>`
 - Need a quick repo state check: use `status`
-- Need to recover from a partial workflow state: use `abort`
-- Need to close out the current branch or start the next one: use `branch` or `branch <new-branch-name>`
+- Need to recover from partial workflow state: use `abort`
+- Need to undo the last checkpoint: use `rollback`
+- Need to close out current work and stop: use `branch`
+- Need to start the next branch: use `branch <new-branch-name>`
