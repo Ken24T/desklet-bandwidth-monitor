@@ -1,5 +1,15 @@
 # Copilot Instructions
 
+## Shared code and documentation policy
+
+This repository adopts shared-development-policy 1.0.0. Read
+`.github/DEVELOPMENT_POLICY.md` and its machine-readable companion
+`.github/development-policy.json` for code, configuration and documentation work.
+Use `node scripts/check-modularity.cjs --changed` for advisory size signals.
+Record design reviews for new or materially changed large files in change notes.
+File size alone never requires a split or grants approval to commit or publish.
+Existing correctness, security, Git and approval protections remain in force.
+
 This repository is a native Cinnamon/GJS desklet project for monitoring network bandwidth.
 
 ## Working Context
@@ -44,7 +54,7 @@ The consolidated cross-repo application prompt is expected to be discoverable th
 - Aim for a small, modular desklet structure centred on `desklet.js`, `metadata.json`, `settings-schema.json`, and `stylesheet.css`.
 - Read network counters from `/sys/class/net/<interface>/statistics/` unless there is a concrete Cinnamon-specific constraint that forces a different source.
 - Keep data collection, rate calculation, history buffering, and rendering concerns separated even when a slice is small.
-- Use a soft file-size guideline rather than a hard cap: target about 300 lines for most focused modules, and allow `desklet.js` to grow further only when it remains cohesive.
+- Follow the shared code and documentation policy for size review and cohesion.
 - Optimise for correctness and low overhead over cleverness.
 - For local Cinnamon installation, prefer a real copied desklet deployment into `~/.local/share/cinnamon/desklets/<uuid>` via `./scripts/install-local-desklet.sh`; do not rely on symlink-based installs.
 
